@@ -48,7 +48,7 @@ export const FaceModel = () => {
   return (
     <div className="space-y-6">
       {/* SVG Face Model */}
-      <div className="relative mx-auto w-64 h-80 bg-gradient-to-b from-rose-50 to-violet-50 rounded-3xl p-4 shadow-inner">
+      <div className="relative mx-auto w-64 h-80">
         <svg
           viewBox="0 0 200 250"
           className="w-full h-full"
