@@ -1,82 +1,10 @@
+
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Star, Droplets, Shield, Zap, Heart } from 'lucide-react';
-
-interface Ingredient {
-  id: number;
-  name: string;
-  category: 'hydrating' | 'anti-aging' | 'acne-fighting' | 'brightening' | 'sensitive';
-  description: string;
-  benefits: string[];
-  rating: number;
-  skinTypes: string[];
-  concerns: string[];
-}
-
-const ingredients: Ingredient[] = [
-  {
-    id: 1,
-    name: 'Hyaluronic Acid',
-    category: 'hydrating',
-    description: 'A powerful humectant that can hold up to 1000 times its weight in water.',
-    benefits: ['Deep hydration', 'Plumps skin', 'Reduces fine lines'],
-    rating: 4.9,
-    skinTypes: ['All skin types'],
-    concerns: ['Dehydration', 'Fine lines', 'Dullness']
-  },
-  {
-    id: 2,
-    name: 'Retinol',
-    category: 'anti-aging',
-    description: 'A vitamin A derivative that accelerates cell turnover and stimulates collagen production.',
-    benefits: ['Reduces wrinkles', 'Improves texture', 'Fades dark spots'],
-    rating: 4.7,
-    skinTypes: ['Normal', 'Oily', 'Combination'],
-    concerns: ['Aging', 'Acne', 'Hyperpigmentation']
-  },
-  {
-    id: 3,
-    name: 'Niacinamide',
-    category: 'acne-fighting',
-    description: 'A form of vitamin B3 that regulates oil production and strengthens the skin barrier.',
-    benefits: ['Controls oil', 'Minimizes pores', 'Reduces inflammation'],
-    rating: 4.8,
-    skinTypes: ['Oily', 'Combination', 'Acne-prone'],
-    concerns: ['Acne', 'Large pores', 'Oiliness']
-  },
-  {
-    id: 4,
-    name: 'Vitamin C',
-    category: 'brightening',
-    description: 'A potent antioxidant that brightens skin and protects against environmental damage.',
-    benefits: ['Brightens complexion', 'Evens skin tone', 'Antioxidant protection'],
-    rating: 4.6,
-    skinTypes: ['All skin types'],
-    concerns: ['Dullness', 'Dark spots', 'Sun damage']
-  },
-  {
-    id: 5,
-    name: 'Ceramides',
-    category: 'sensitive',
-    description: 'Lipids that help restore and maintain the skin\'s natural barrier.',
-    benefits: ['Strengthens barrier', 'Locks in moisture', 'Soothes irritation'],
-    rating: 4.8,
-    skinTypes: ['Dry', 'Sensitive', 'Mature'],
-    concerns: ['Dryness', 'Sensitivity', 'Barrier damage']
-  },
-  {
-    id: 6,
-    name: 'Salicylic Acid',
-    category: 'acne-fighting',
-    description: 'A beta hydroxy acid that penetrates pores to remove dead skin cells and excess oil.',
-    benefits: ['Unclogs pores', 'Exfoliates', 'Reduces blackheads'],
-    rating: 4.5,
-    skinTypes: ['Oily', 'Acne-prone'],
-    concerns: ['Acne', 'Blackheads', 'Clogged pores']
-  }
-];
+import { Star, Droplets, Shield, Zap, Heart, Loader2 } from 'lucide-react';
+import { useIngredients } from '@/hooks/useIngredients';
 
 const categoryIcons = {
   hydrating: Droplets,
@@ -100,6 +28,7 @@ interface IngredientDatabaseProps {
 
 export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const { data: ingredients = [], isLoading, error } = useIngredients();
 
   const filteredIngredients = useMemo(() => {
     return ingredients.filter(ingredient => {
@@ -111,13 +40,18 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
       
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, ingredients]);
+
+  if (error) {
+    console.error('Error loading ingredients:', error);
+  }
 
   return (
     <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-rose-100 p-4">
       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <div className="w-2 h-2 bg-gradient-to-r from-rose-400 to-violet-500 rounded-full"></div>
         Ingredient Database
+        {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
       </h3>
 
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
@@ -135,7 +69,21 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
         </TabsList>
 
         <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-          {filteredIngredients.map((ingredient) => {
+          {isLoading && (
+            <div className="text-center py-6">
+              <Loader2 className="h-8 w-8 mx-auto mb-2 text-gray-400 animate-spin" />
+              <p className="text-sm text-gray-500">Loading ingredients...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-6 text-red-500">
+              <Shield className="h-8 w-8 mx-auto mb-2" />
+              <p className="text-sm">Error loading ingredients. Please try again.</p>
+            </div>
+          )}
+
+          {!isLoading && !error && filteredIngredients.map((ingredient) => {
             const IconComponent = categoryIcons[ingredient.category];
             return (
               <Card key={ingredient.id} className="p-3 hover:shadow-lg transition-all duration-300 border-rose-100 hover:border-violet-200">
@@ -167,6 +115,20 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
                       ))}
                     </div>
                   </div>
+                  
+                  {ingredient.casNumber && (
+                    <div>
+                      <span className="text-xs font-medium text-gray-500">CAS:</span>
+                      <span className="text-xs text-gray-600 ml-1">{ingredient.casNumber}</span>
+                    </div>
+                  )}
+                  
+                  {ingredient.potency && (
+                    <div>
+                      <span className="text-xs font-medium text-gray-500">Potency:</span>
+                      <span className="text-xs text-gray-600 ml-1">{ingredient.potency}</span>
+                    </div>
+                  )}
                 </div>
               </Card>
             );
@@ -174,7 +136,7 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
         </div>
       </Tabs>
 
-      {filteredIngredients.length === 0 && (
+      {!isLoading && !error && filteredIngredients.length === 0 && (
         <div className="text-center py-6 text-gray-500">
           <Shield className="h-8 w-8 mx-auto mb-2 text-gray-300" />
           <p className="text-sm">No ingredients found.</p>
