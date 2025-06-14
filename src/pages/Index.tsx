@@ -23,18 +23,8 @@ const Index = () => {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-violet-600 bg-clip-text text-transparent">
                   SkinGlow
                 </h1>
-                <p className="text-sm text-gray-600">Your Skincare Ingredient Guide</p>
+                <p className="text-sm text-gray-600">Your Interactive Skincare Guide</p>
               </div>
-            </div>
-            <div className="relative max-w-md w-full ml-8">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search ingredients..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/70 border-rose-200 focus:border-violet-300 focus:ring-violet-200"
-              />
             </div>
           </div>
         </div>
@@ -42,23 +32,36 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
-          {/* 3D Face Model Section */}
-          <div className="order-2 lg:order-1">
-            <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-rose-100 p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-gradient-to-r from-rose-400 to-violet-500 rounded-full"></div>
-                Interactive Face Model
-              </h2>
+        <div className="flex gap-8">
+          {/* Main 3D Face Model Section */}
+          <div className="flex-1">
+            <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-rose-100 p-8">
+              <div className="text-center mb-6">
+                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                  Interactive Face Model
+                </h2>
+                <p className="text-gray-600">
+                  Click on different areas of the face to discover targeted skincare ingredients
+                </p>
+              </div>
               <FaceModel />
-              <p className="text-sm text-gray-600 mt-4 text-center">
-                Click on face areas to discover targeted ingredients
-              </p>
             </div>
           </div>
 
-          {/* Ingredient Database Section */}
-          <div className="order-1 lg:order-2">
+          {/* Ingredient Database Sidebar */}
+          <div className="w-80">
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search ingredients..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-white/70 border-rose-200 focus:border-violet-300 focus:ring-violet-200"
+                />
+              </div>
+            </div>
             <IngredientDatabase searchTerm={searchTerm} />
           </div>
         </div>

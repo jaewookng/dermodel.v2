@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -114,80 +113,73 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
     });
   }, [searchTerm, selectedCategory]);
 
-  const categories = ['all', ...Array.from(new Set(ingredients.map(i => i.category)))];
-
   return (
-    <div className="space-y-6">
-      <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-rose-100 p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <div className="w-2 h-2 bg-gradient-to-r from-rose-400 to-violet-500 rounded-full"></div>
-          Ingredient Database
-        </h2>
+    <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-rose-100 p-4">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="w-2 h-2 bg-gradient-to-r from-rose-400 to-violet-500 rounded-full"></div>
+        Ingredient Database
+      </h3>
 
-        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6">
-            <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-            <TabsTrigger value="hydrating" className="text-xs">Hydrating</TabsTrigger>
-            <TabsTrigger value="anti-aging" className="text-xs">Anti-Aging</TabsTrigger>
-            <TabsTrigger value="acne-fighting" className="text-xs">Acne</TabsTrigger>
-            <TabsTrigger value="brightening" className="text-xs">Brightening</TabsTrigger>
-            <TabsTrigger value="sensitive" className="text-xs">Sensitive</TabsTrigger>
-          </TabsList>
+      <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+          <TabsTrigger value="hydrating" className="text-xs">Hydrating</TabsTrigger>
+        </TabsList>
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="anti-aging" className="text-xs">Anti-Aging</TabsTrigger>
+          <TabsTrigger value="acne-fighting" className="text-xs">Acne</TabsTrigger>
+        </TabsList>
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="brightening" className="text-xs">Brightening</TabsTrigger>
+          <TabsTrigger value="sensitive" className="text-xs">Sensitive</TabsTrigger>
+        </TabsList>
 
-          <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-            {filteredIngredients.map((ingredient) => {
-              const IconComponent = categoryIcons[ingredient.category];
-              return (
-                <Card key={ingredient.id} className="p-4 hover:shadow-lg transition-all duration-300 border-rose-100 hover:border-violet-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${categoryColors[ingredient.category]}`}>
-                        <IconComponent className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800">{ingredient.name}</h3>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs text-gray-600">{ingredient.rating}</span>
-                        </div>
-                      </div>
+        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+          {filteredIngredients.map((ingredient) => {
+            const IconComponent = categoryIcons[ingredient.category];
+            return (
+              <Card key={ingredient.id} className="p-3 hover:shadow-lg transition-all duration-300 border-rose-100 hover:border-violet-200">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded-lg ${categoryColors[ingredient.category]}`}>
+                      <IconComponent className="h-3 w-3" />
                     </div>
-                    <Badge variant="secondary" className={categoryColors[ingredient.category]}>
-                      {ingredient.category.replace('-', ' ')}
-                    </Badge>
-                  </div>
-                  
-                  <p className="text-sm text-gray-600 mb-3">{ingredient.description}</p>
-                  
-                  <div className="space-y-2">
                     <div>
-                      <span className="text-xs font-medium text-gray-500">Benefits:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {ingredient.benefits.map((benefit, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {benefit}
-                          </Badge>
-                        ))}
+                      <h4 className="font-semibold text-gray-800 text-sm">{ingredient.name}</h4>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs text-gray-600">{ingredient.rating}</span>
                       </div>
                     </div>
-                    
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Skin Types: {ingredient.skinTypes.join(', ')}</span>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-600 mb-2">{ingredient.description}</p>
+                
+                <div className="space-y-1">
+                  <div>
+                    <span className="text-xs font-medium text-gray-500">Benefits:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {ingredient.benefits.slice(0, 2).map((benefit, index) => (
+                        <Badge key={index} variant="outline" className="text-xs py-0 px-1">
+                          {benefit}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-                </Card>
-              );
-            })}
-          </div>
-        </Tabs>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </Tabs>
 
-        {filteredIngredients.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <Shield className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <p>No ingredients found matching your search.</p>
-          </div>
-        )}
-      </div>
+      {filteredIngredients.length === 0 && (
+        <div className="text-center py-6 text-gray-500">
+          <Shield className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+          <p className="text-sm">No ingredients found.</p>
+        </div>
+      )}
     </div>
   );
 };
