@@ -22,9 +22,7 @@ const Index = () => {
         <div className="flex gap-8">
           {/* Main 3D Face Model Section */}
           <div className="flex-1">
-            <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-rose-100 p-8">
-              <FaceModel />
-            </div>
+            <FaceModel />
           </div>
 
           {/* Ingredient Database Sidebar */}
