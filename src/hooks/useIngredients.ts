@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -21,7 +20,6 @@ interface ProcessedIngredient {
   category: 'hydrating' | 'anti-aging' | 'acne-fighting' | 'brightening' | 'sensitive';
   description: string;
   benefits: string[];
-  rating: number;
   skinTypes: string[];
   concerns: string[];
   casNumber?: string;
@@ -118,14 +116,6 @@ const processIngredient = (ingredient: SupabaseIngredient): ProcessedIngredient 
   const skinTypes = getSkinTypes(category);
   const concerns = getConcerns(category);
   
-  // Generate a simple rating based on available data completeness
-  const dataCompleteness = [
-    ingredient.CAS_NUMBER,
-    ingredient.POTENCY_AMOUNT,
-    ingredient.MAXIMUM_DAILY_EXPOSURE
-  ].filter(Boolean).length;
-  const rating = Math.min(4.9, 4.0 + (dataCompleteness * 0.3));
-  
   const potency = ingredient.POTENCY_AMOUNT && ingredient.POTENCY_UNIT 
     ? `${ingredient.POTENCY_AMOUNT} ${ingredient.POTENCY_UNIT}`
     : undefined;
@@ -140,7 +130,6 @@ const processIngredient = (ingredient: SupabaseIngredient): ProcessedIngredient 
     category,
     description: `A scientifically-backed ingredient${potency ? ` with ${potency} potency` : ''}${ingredient.ROUTE ? ` for ${ingredient.ROUTE.toLowerCase()} application` : ''}.`,
     benefits,
-    rating: Number(rating.toFixed(1)),
     skinTypes,
     concerns,
     casNumber: ingredient.CAS_NUMBER?.toString(),

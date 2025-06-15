@@ -3,14 +3,14 @@ import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Star, Droplets, Shield, Zap, Heart, Loader2 } from 'lucide-react';
+import { Droplets, Shield, Zap, Heart, Loader2 } from 'lucide-react';
 import { useIngredients } from '@/hooks/useIngredients';
 
 const categoryIcons = {
   hydrating: Droplets,
-  'anti-aging': Star,
+  'anti-aging': Shield,
   'acne-fighting': Zap,
-  brightening: Star,
+  brightening: Shield,
   sensitive: Heart
 };
 
@@ -94,10 +94,6 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-800 text-sm">{ingredient.name}</h4>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs text-gray-600">{ingredient.rating}</span>
-                      </div>
                     </div>
                   </div>
                 </div>
