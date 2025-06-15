@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +35,7 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
   const { data: ingredients = [], isLoading, error } = useIngredients();
 
   const filteredIngredients = useMemo(() => {
-    return ingredients.filter(ingredient => {
+    const filtered = ingredients.filter(ingredient => {
       const matchesSearch = ingredient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            ingredient.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            ingredient.benefits.some(benefit => benefit.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -43,6 +44,9 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
       
       return matchesSearch && matchesCategory;
     });
+    
+    // Sort ingredients alphabetically by name
+    return filtered.sort((a, b) => a.name.localeCompare(b.name));
   }, [searchTerm, selectedCategory, ingredients]);
 
   // Reset to page 1 when filters or itemsPerPage change
@@ -52,7 +56,7 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
 
   const totalPages = Math.ceil(filteredIngredients.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, filteredIngredients.length);
+  const endIndex = startIndex + itemsPerPage;
   const paginatedIngredients = filteredIngredients.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
@@ -200,7 +204,7 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
         {/* Results Summary */}
         {!isLoading && !error && (
           <div className="mt-3 text-xs text-gray-500 text-center">
-            Showing {startIndex + 1}-{endIndex} of {filteredIngredients.length} ingredients
+            Showing {startIndex + 1}-{Math.min(endIndex, filteredIngredients.length)} of {filteredIngredients.length} ingredients
           </div>
         )}
       </Tabs>
