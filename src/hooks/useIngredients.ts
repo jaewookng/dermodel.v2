@@ -154,23 +154,38 @@ export const useIngredients = () => {
   return useQuery({
     queryKey: ['ingredients'],
     queryFn: async () => {
-      console.log('Fetching ingredients from Supabase...');
-      const { data, error } = await supabase
-        .from('ingredients')
-        .select('*')
-        .limit(50); // Limit for performance
+      console.log('🔍 Starting ingredient fetch from Supabase...');
       
-      if (error) {
-        console.error('Error fetching ingredients:', error);
+      try {
+        const { data, error } = await supabase
+          .from('ingredients')
+          .select('*')
+          .limit(100); // Increased limit to get more data
+        
+        if (error) {
+          console.error('❌ Supabase error:', error);
+          throw error;
+        }
+        
+        console.log('✅ Raw ingredients data received:', data?.length || 0, 'items');
+        console.log('📊 Sample data:', data?.slice(0, 2));
+        
+        if (!data || data.length === 0) {
+          console.warn('⚠️ No ingredients found in database');
+          return [];
+        }
+        
+        const processed = data.map(processIngredient);
+        console.log('🔄 Processed ingredients:', processed.length, 'items');
+        console.log('📋 Sample processed:', processed.slice(0, 2));
+        
+        return processed;
+      } catch (error) {
+        console.error('💥 Error in ingredient fetch:', error);
         throw error;
       }
-      
-      console.log('Raw ingredients data:', data);
-      
-      const processed = data?.map(processIngredient) || [];
-      console.log('Processed ingredients:', processed);
-      
-      return processed;
     },
+    retry: 3,
+    retryDelay: 1000,
   });
 };
