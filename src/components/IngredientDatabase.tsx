@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,8 +45,8 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
     });
   }, [searchTerm, selectedCategory, ingredients]);
 
-  // Reset to page 1 when filters change
-  useMemo(() => {
+  // Reset to page 1 when filters or itemsPerPage change
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, itemsPerPage]);
 
@@ -61,7 +61,6 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
 
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(Number(value));
-    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   if (error) {
