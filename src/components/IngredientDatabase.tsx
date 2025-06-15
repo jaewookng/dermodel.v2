@@ -3,7 +3,9 @@ import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Droplets, Shield, Zap, Heart, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Droplets, Shield, Zap, Heart, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useIngredients } from '@/hooks/useIngredients';
 
 const categoryIcons = {
@@ -28,6 +30,8 @@ interface IngredientDatabaseProps {
 
 export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const { data: ingredients = [], isLoading, error } = useIngredients();
 
   const filteredIngredients = useMemo(() => {
@@ -41,6 +45,24 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
       return matchesSearch && matchesCategory;
     });
   }, [searchTerm, selectedCategory, ingredients]);
+
+  const totalPages = Math.ceil(filteredIngredients.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedIngredients = filteredIngredients.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+  };
 
   if (error) {
     console.error('Error loading ingredients:', error);
@@ -68,6 +90,51 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
           <TabsTrigger value="sensitive" className="text-xs">Sensitive</TabsTrigger>
         </TabsList>
 
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between mb-4 gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600">Show:</span>
+            <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+              <SelectTrigger className="w-16 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="40">40</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              
+              <span className="text-xs text-gray-600 px-2">
+                {currentPage} of {totalPages}
+              </span>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
           {isLoading && (
             <div className="text-center py-6">
@@ -83,7 +150,7 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
             </div>
           )}
 
-          {!isLoading && !error && filteredIngredients.map((ingredient) => {
+          {!isLoading && !error && paginatedIngredients.map((ingredient) => {
             const IconComponent = categoryIcons[ingredient.category];
             return (
               <Card key={ingredient.id} className="p-3 hover:shadow-lg transition-all duration-300 border-rose-100 hover:border-violet-200">
@@ -130,6 +197,13 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
             );
           })}
         </div>
+
+        {/* Results Summary */}
+        {!isLoading && !error && (
+          <div className="mt-3 text-xs text-gray-500 text-center">
+            Showing {startIndex + 1}-{Math.min(endIndex, filteredIngredients.length)} of {filteredIngredients.length} ingredients
+          </div>
+        )}
       </Tabs>
 
       {!isLoading && !error && filteredIngredients.length === 0 && (
