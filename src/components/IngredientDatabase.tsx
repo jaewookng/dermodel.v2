@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,15 +45,15 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
     });
   }, [searchTerm, selectedCategory, ingredients]);
 
-  const totalPages = Math.ceil(filteredIngredients.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedIngredients = filteredIngredients.slice(startIndex, endIndex);
-
   // Reset to page 1 when filters change
   useMemo(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredIngredients.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, filteredIngredients.length);
+  const paginatedIngredients = filteredIngredients.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -62,6 +61,7 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
 
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(Number(value));
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   if (error) {
@@ -201,7 +201,7 @@ export const IngredientDatabase = ({ searchTerm }: IngredientDatabaseProps) => {
         {/* Results Summary */}
         {!isLoading && !error && (
           <div className="mt-3 text-xs text-gray-500 text-center">
-            Showing {startIndex + 1}-{Math.min(endIndex, filteredIngredients.length)} of {filteredIngredients.length} ingredients
+            Showing {startIndex + 1}-{endIndex} of {filteredIngredients.length} ingredients
           </div>
         )}
       </Tabs>
