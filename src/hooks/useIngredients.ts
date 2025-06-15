@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -148,8 +149,7 @@ export const useIngredients = () => {
       try {
         const { data, error } = await supabase
           .from('ingredients')
-          .select('*')
-          .limit(100); // Increased limit to get more data
+          .select('*'); // Removed the .limit(100) to fetch all records
         
         if (error) {
           console.error('❌ Supabase error:', error);
