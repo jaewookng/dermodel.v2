@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           CAS_NUMBER: number | null
           database: string | null
+          DESCRIPTION: string | null
           INGREDIENT_NAME: string
           MAXIMUM_DAILY_EXPOSURE: string | null
           MAXIMUM_DAILY_EXPOSURE_UNIT: string | null
@@ -25,6 +26,7 @@ export type Database = {
         Insert: {
           CAS_NUMBER?: number | null
           database?: string | null
+          DESCRIPTION?: string | null
           INGREDIENT_NAME: string
           MAXIMUM_DAILY_EXPOSURE?: string | null
           MAXIMUM_DAILY_EXPOSURE_UNIT?: string | null
@@ -37,6 +39,7 @@ export type Database = {
         Update: {
           CAS_NUMBER?: number | null
           database?: string | null
+          DESCRIPTION?: string | null
           INGREDIENT_NAME?: string
           MAXIMUM_DAILY_EXPOSURE?: string | null
           MAXIMUM_DAILY_EXPOSURE_UNIT?: string | null
