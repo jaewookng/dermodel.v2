@@ -1,13 +1,8 @@
 
-import { useState } from 'react';
 import { FaceModel } from '@/components/FaceModel';
-import { NewIngredientDatabase } from '@/components/NewIngredientDatabase';
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { OptimizedIngredientDatabase } from '@/components/OptimizedIngredientDatabase';
 
 const Index = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-violet-50">
       {/* Service Name */}
@@ -25,9 +20,9 @@ const Index = () => {
             <FaceModel />
           </div>
 
-          {/* New Ingredient Database Sidebar */}
+          {/* Optimized Ingredient Database Sidebar */}
           <div className="w-96">
-            <NewIngredientDatabase />
+            <OptimizedIngredientDatabase />
           </div>
         </div>
       </main>

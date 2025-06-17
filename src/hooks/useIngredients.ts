@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,6 +12,7 @@ interface SupabaseIngredient {
   MAXIMUM_DAILY_EXPOSURE_UNIT: string | null;
   RECORD_UPDATED: string | null;
   database: string | null;
+  DESCRIPTION: string | null;
 }
 
 interface ProcessedIngredient {
@@ -29,7 +29,22 @@ interface ProcessedIngredient {
   maxExposure?: string;
 }
 
-// Helper function to categorize ingredients based on name and route
+interface FilterParams {
+  search?: string;
+  category?: string;
+  hasData?: string;
+  sortBy?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface IngredientsResponse {
+  data: ProcessedIngredient[];
+  totalCount: number;
+  hasMore: boolean;
+}
+
+// Helper functions remain the same
 const categorizeIngredient = (name: string, route: string | null): ProcessedIngredient['category'] => {
   const nameLower = name.toLowerCase();
   const routeLower = route?.toLowerCase() || '';
@@ -50,14 +65,10 @@ const categorizeIngredient = (name: string, route: string | null): ProcessedIngr
     return 'sensitive';
   }
   
-  // Default categorization
   return 'hydrating';
 };
 
-// Helper function to generate user-friendly benefits based on ingredient properties
 const generateBenefits = (name: string, category: ProcessedIngredient['category']): string[] => {
-  const nameLower = name.toLowerCase();
-  
   switch (category) {
     case 'hydrating':
       return ['Moisturizes skin', 'Plumps appearance', 'Smooth texture'];
@@ -74,7 +85,6 @@ const generateBenefits = (name: string, category: ProcessedIngredient['category'
   }
 };
 
-// Helper function to determine suitable skin types
 const getSkinTypes = (category: ProcessedIngredient['category']): string[] => {
   switch (category) {
     case 'hydrating':
@@ -92,7 +102,6 @@ const getSkinTypes = (category: ProcessedIngredient['category']): string[] => {
   }
 };
 
-// Helper function to determine concerns addressed
 const getConcerns = (category: ProcessedIngredient['category']): string[] => {
   switch (category) {
     case 'hydrating':
@@ -110,7 +119,6 @@ const getConcerns = (category: ProcessedIngredient['category']): string[] => {
   }
 };
 
-// Transform scientific data into user-friendly format
 const processIngredient = (ingredient: SupabaseIngredient): ProcessedIngredient => {
   const category = categorizeIngredient(ingredient.INGREDIENT_NAME, ingredient.ROUTE);
   const benefits = generateBenefits(ingredient.INGREDIENT_NAME, category);
@@ -129,7 +137,7 @@ const processIngredient = (ingredient: SupabaseIngredient): ProcessedIngredient 
     id: ingredient.CAS_NUMBER?.toString() || ingredient.INGREDIENT_NAME,
     name: ingredient.INGREDIENT_NAME,
     category,
-    description: `A scientifically-backed ingredient${potency ? ` with ${potency} potency` : ''}${ingredient.ROUTE ? ` for ${ingredient.ROUTE.toLowerCase()} application` : ''}.`,
+    description: ingredient.DESCRIPTION || `A scientifically-backed ingredient${potency ? ` with ${potency} potency` : ''}${ingredient.ROUTE ? ` for ${ingredient.ROUTE.toLowerCase()} application` : ''}.`,
     benefits,
     skinTypes,
     concerns,
@@ -140,41 +148,98 @@ const processIngredient = (ingredient: SupabaseIngredient): ProcessedIngredient 
   };
 };
 
-export const useIngredients = () => {
+export const useIngredients = (filters: FilterParams = {}) => {
+  const { page = 1, limit = 50, search, category, hasData, sortBy = 'name' } = filters;
+  
   return useQuery({
-    queryKey: ['ingredients'],
-    queryFn: async () => {
-      console.log('🔍 Starting ingredient fetch from Supabase...');
+    queryKey: ['ingredients', { page, limit, search, category, hasData, sortBy }],
+    queryFn: async (): Promise<IngredientsResponse> => {
+      console.log('🔍 Fetching ingredients with filters:', filters);
       
       try {
-        const { data, error } = await supabase
-          .from('ingredients')
-          .select('*'); // Removed the .limit(100) to fetch all records
+        let query = supabase.from('ingredients').select('*', { count: 'exact' });
+        
+        // Apply search filter
+        if (search) {
+          query = query.or(`INGREDIENT_NAME.ilike.%${search}%,DESCRIPTION.ilike.%${search}%,CAS_NUMBER.eq.${search}`);
+        }
+        
+        // Apply category filter (this would need to be done post-processing since categories are derived)
+        // For now, we'll handle this in the frontend
+        
+        // Apply data availability filters
+        if (hasData === 'with-cas') {
+          query = query.not('CAS_NUMBER', 'is', null);
+        } else if (hasData === 'with-potency') {
+          query = query.not('POTENCY_AMOUNT', 'is', null);
+        } else if (hasData === 'with-exposure') {
+          query = query.not('MAXIMUM_DAILY_EXPOSURE', 'is', null);
+        }
+        
+        // Apply sorting
+        if (sortBy === 'name' || sortBy === 'name-desc') {
+          query = query.order('INGREDIENT_NAME', { ascending: sortBy === 'name' });
+        } else if (sortBy === 'cas') {
+          query = query.order('CAS_NUMBER', { ascending: true, nullsLast: true });
+        }
+        
+        // Apply pagination
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+        query = query.range(from, to);
+        
+        const { data, error, count } = await query;
         
         if (error) {
           console.error('❌ Supabase error:', error);
           throw error;
         }
         
-        console.log('✅ Raw ingredients data received:', data?.length || 0, 'items');
-        console.log('📊 Sample data:', data?.slice(0, 2));
+        console.log('✅ Raw ingredients data received:', data?.length || 0, 'items, total:', count);
         
-        if (!data || data.length === 0) {
-          console.warn('⚠️ No ingredients found in database');
-          return [];
+        if (!data) {
+          return { data: [], totalCount: 0, hasMore: false };
         }
         
-        const processed = data.map(processIngredient);
-        console.log('🔄 Processed ingredients:', processed.length, 'items');
-        console.log('📋 Sample processed:', processed.slice(0, 2));
+        let processed = data.map(processIngredient);
         
-        return processed;
+        // Apply category filter post-processing
+        if (category && category !== 'all') {
+          processed = processed.filter(ingredient => ingredient.category === category);
+        }
+        
+        console.log('🔄 Processed ingredients:', processed.length, 'items');
+        
+        return {
+          data: processed,
+          totalCount: count || 0,
+          hasMore: count ? (page * limit) < count : false
+        };
       } catch (error) {
         console.error('💥 Error in ingredient fetch:', error);
         throw error;
       }
     },
-    retry: 3,
-    retryDelay: 1000,
+    retry: 2,
+    retryDelay: 500,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+// Hook for getting total count
+export const useIngredientsCount = () => {
+  return useQuery({
+    queryKey: ['ingredients-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('ingredients')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) throw error;
+      return count || 0;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
 };
