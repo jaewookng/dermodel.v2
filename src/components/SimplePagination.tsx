@@ -24,73 +24,72 @@ export const SimplePagination = ({
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white border-t">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-700">Show:</span>
-          <Select 
-            value={itemsPerPage.toString()} 
-            onValueChange={(value) => onItemsPerPageChange(Number(value))}
-          >
-            <SelectTrigger className="w-20">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-              <SelectItem value="200">200</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="flex items-center justify-between px-2 py-2 bg-gray-50 border-t text-xs">
+      <div className="flex items-center gap-2">
+        <Select 
+          value={itemsPerPage.toString()} 
+          onValueChange={(value) => onItemsPerPageChange(Number(value))}
+        >
+          <SelectTrigger className="w-12 h-7 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="5">5</SelectItem>
+            <SelectItem value="10">10</SelectItem>
+            <SelectItem value="15">15</SelectItem>
+            <SelectItem value="20">20</SelectItem>
+          </SelectContent>
+        </Select>
         
-        <div className="text-sm text-gray-700">
-          Showing {startItem} to {endItem} of {totalItems} ingredients
-        </div>
+        <span className="text-gray-600">
+          {startItem}-{endItem} of {totalItems}
+        </span>
       </div>
 
       {totalPages > 1 && (
         <div className="flex items-center gap-1">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onPageChange(1)}
             disabled={currentPage === 1}
+            className="h-7 w-7 p-0"
           >
-            <ChevronsLeft className="h-4 w-4" />
+            <ChevronsLeft className="h-3 w-3" />
           </Button>
           
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
+            className="h-7 w-7 p-0"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3 w-3" />
           </Button>
           
-          <div className="flex items-center gap-1 mx-2">
-            <span className="text-sm text-gray-700">
-              Page {currentPage} of {totalPages}
-            </span>
-          </div>
+          <span className="text-gray-700 px-2">
+            {currentPage}/{totalPages}
+          </span>
           
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
+            className="h-7 w-7 p-0"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3 w-3" />
           </Button>
           
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onPageChange(totalPages)}
             disabled={currentPage === totalPages}
+            className="h-7 w-7 p-0"
           >
-            <ChevronsRight className="h-4 w-4" />
+            <ChevronsRight className="h-3 w-3" />
           </Button>
         </div>
       )}

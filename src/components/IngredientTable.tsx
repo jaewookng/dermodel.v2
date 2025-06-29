@@ -51,28 +51,26 @@ export const IngredientTable = ({ ingredients }: IngredientTableProps) => {
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-gray-50">
-            <TableHead className="w-8"></TableHead>
-            <TableHead className="font-semibold">Ingredient Name</TableHead>
-            <TableHead className="font-semibold">Category</TableHead>
-            <TableHead className="font-semibold">CAS Number</TableHead>
-            <TableHead className="font-semibold">Route</TableHead>
-            <TableHead className="font-semibold">Actions</TableHead>
+            <TableHead className="w-6 p-2"></TableHead>
+            <TableHead className="font-medium text-xs p-2">Name</TableHead>
+            <TableHead className="font-medium text-xs p-2">Category</TableHead>
+            <TableHead className="font-medium text-xs p-2">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {ingredients.map((ingredient) => (
             <Collapsible key={ingredient.id} open={expandedRows.has(ingredient.id)}>
               <TableRow className="hover:bg-gray-50">
-                <TableCell>
+                <TableCell className="p-2">
                   <CollapsibleTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0"
+                      className="h-5 w-5 p-0"
                       onClick={() => toggleRow(ingredient.id)}
                     >
                       {expandedRows.has(ingredient.id) ? (
@@ -83,8 +81,8 @@ export const IngredientTable = ({ ingredients }: IngredientTableProps) => {
                     </Button>
                   </CollapsibleTrigger>
                 </TableCell>
-                <TableCell className="font-medium">{ingredient.name}</TableCell>
-                <TableCell>
+                <TableCell className="font-medium text-xs p-2">{ingredient.name}</TableCell>
+                <TableCell className="p-2">
                   <Badge 
                     variant="outline" 
                     className={`text-xs ${categoryColors[ingredient.category]}`}
@@ -92,17 +90,11 @@ export const IngredientTable = ({ ingredients }: IngredientTableProps) => {
                     {ingredient.category.replace('-', ' ')}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-gray-600">
-                  {ingredient.casNumber || '-'}
-                </TableCell>
-                <TableCell className="text-sm text-gray-600">
-                  {ingredient.route || '-'}
-                </TableCell>
-                <TableCell>
+                <TableCell className="p-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs"
+                    className="h-6 text-xs px-2"
                     onClick={() => openPubMed(ingredient.name)}
                   >
                     <ExternalLink className="h-3 w-3 mr-1" />
@@ -112,14 +104,12 @@ export const IngredientTable = ({ ingredients }: IngredientTableProps) => {
               </TableRow>
               <CollapsibleContent asChild>
                 <TableRow className="bg-gray-25">
-                  <TableCell colSpan={6} className="p-4 border-t">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <TableCell colSpan={4} className="p-3 border-t">
+                    <div className="grid grid-cols-1 gap-3 text-xs">
                       <div>
-                        <h4 className="font-medium text-sm mb-2">Description</h4>
-                        <p className="text-xs text-gray-600 mb-3">{ingredient.description}</p>
+                        <p className="text-gray-600 mb-2">{ingredient.description}</p>
                         
-                        <h4 className="font-medium text-sm mb-2">Benefits</h4>
-                        <div className="flex flex-wrap gap-1 mb-3">
+                        <div className="flex flex-wrap gap-1 mb-2">
                           {ingredient.benefits.map((benefit, index) => (
                             <Badge key={index} variant="secondary" className="text-xs">
                               {benefit}
@@ -127,7 +117,6 @@ export const IngredientTable = ({ ingredients }: IngredientTableProps) => {
                           ))}
                         </div>
                         
-                        <h4 className="font-medium text-sm mb-2">Suitable Skin Types</h4>
                         <div className="flex flex-wrap gap-1">
                           {ingredient.skinTypes.map((skinType, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
@@ -137,32 +126,13 @@ export const IngredientTable = ({ ingredients }: IngredientTableProps) => {
                         </div>
                       </div>
                       
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">Technical Data</h4>
-                        <div className="space-y-1 text-xs">
-                          {ingredient.potency && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Potency:</span>
-                              <span className="text-gray-700">{ingredient.potency}</span>
-                            </div>
-                          )}
-                          {ingredient.maxExposure && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Max Exposure:</span>
-                              <span className="text-gray-700">{ingredient.maxExposure}</span>
-                            </div>
-                          )}
+                      {(ingredient.casNumber || ingredient.potency || ingredient.maxExposure) && (
+                        <div className="text-xs text-gray-600 mt-2">
+                          {ingredient.casNumber && <div>CAS: {ingredient.casNumber}</div>}
+                          {ingredient.potency && <div>Potency: {ingredient.potency}</div>}
+                          {ingredient.maxExposure && <div>Max Exposure: {ingredient.maxExposure}</div>}
                         </div>
-                        
-                        <h4 className="font-medium text-sm mb-2 mt-3">Addresses Concerns</h4>
-                        <div className="flex flex-wrap gap-1">
-                          {ingredient.concerns.map((concern, index) => (
-                            <Badge key={index} variant="outline" className="text-xs bg-rose-50 text-rose-700">
-                              {concern}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
