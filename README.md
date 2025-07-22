@@ -1,73 +1,66 @@
-# Welcome to your Lovable project
+# Welcome to Dermodel v2: Your Personal Skincare Analysis Platform
 
-## Project info
+This project is a sophisticated skincare analysis application, leveraging modern web technologies to provide personalized insights and recommendations.
 
-**URL**: https://lovable.dev/projects/78face37-adfe-41e3-9419-6583ab476595
+## Project Info
+
+Dermodel v2 is an independent project designed for comprehensive skincare analysis.
 
 ## How can I edit this code?
 
-There are several ways of editing your application.
+You can edit this application using your preferred IDE or directly via GitHub.
 
-**Use Lovable**
+**Work Locally with your IDE**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/78face37-adfe-41e3-9419-6583ab476595) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+1.  **Clone the repository**:
+    ```sh
+    git clone <YOUR_GIT_URL>
+    ```
+2.  **Navigate to the project directory**:
+    ```sh
+    cd <YOUR_PROJECT_NAME>
+    ```
+3.  **Install dependencies**:
+    ```sh
+    npm i
+    ```
+4.  **Start the development server**:
+    ```sh
+    npm run dev
+    ```
 
 **Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+* Navigate to the desired file(s) in your repository.
+* Click the "Edit" button (pencil icon) at the top right of the file view.
+* Make your changes and commit them directly.
 
 **Use GitHub Codespaces**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+* From your repository's main page, click the "Code" button.
+* Select the "Codespaces" tab.
+* Click "New codespace" to launch a new environment for editing.
 
 ## What technologies are used for this project?
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+* Vite
+* TypeScript
+* React
+* shadcn/ui
+* Tailwind CSS
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/78face37-adfe-41e3-9419-6583ab476595) and click on Share -> Publish.
+You can deploy this project using any standard web hosting service that supports static site generation or Node.js applications (e.g., Vercel, Netlify, GitHub Pages for static builds).
 
-## Can I connect a custom domain to my Lovable project?
+1.  **Build the project**:
+    ```sh
+    npm run build
+    ```
+2.  Upload the contents of the `dist` folder to your hosting provider.
 
-Yes, you can!
+## Can I connect a custom domain to my project?
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Yes, custom domains can be connected through your chosen hosting provider's settings. Refer to their documentation for specific steps.

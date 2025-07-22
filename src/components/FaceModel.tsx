@@ -6,14 +6,14 @@ import * as THREE from 'three';
 
 type FaceArea = 'forehead' | 'eyes' | 'cheeks' | 'nose' | 'mouth' | 'chin' | null;
 
-// Camera positions for each face area - centered in the scene
+// Camera positions for each face area - fixed camera position, only orientation changes
 const cameraPositions: Record<FaceArea, { position: [number, number, number]; target: [number, number, number] }> = {
-  forehead: { position: [0, 2.5, 3.5], target: [0, 1.8, 0] },
-  eyes: { position: [0, 0.8, 3.5], target: [0, 0.5, 0] },
-  cheeks: { position: [1.3, 0, 3.5], target: [-1, 0, 0] },
-  nose: { position: [0, 0.2, 3], target: [0, 0, 0] },
-  mouth: { position: [0, -0.8, 3.5], target: [0, -0.5, 0] },
-  chin: { position: [0, -1.8, 3.5], target: [0, -1.2, 0] }
+  forehead: { position: [0, 0, 8], target: [-2, 0.8, 0] },
+  eyes: { position: [0, 0, 8], target: [-2, 0.2, 0] },
+  cheeks: { position: [0, 0, 8], target: [-1.2, 0, 0] },
+  nose: { position: [0, 0, 8], target: [-2, -0.1, 0] },
+  mouth: { position: [0, 0, 8], target: [-2, -0.3, 0] },
+  chin: { position: [0, 0, 8], target: [-2, -0.8, 0] }
 };
 
 // Face area information
@@ -99,6 +99,36 @@ function Face3DModel({
     }
   });
   
+  // Reset rotation when active area changes
+  useEffect(() => {
+    if (meshRef.current && activeArea) {
+      // Animate rotation back to face left
+      const startRotation = meshRef.current.rotation.y;
+      const targetRotation = Math.PI / 4; // 45 degrees to face left
+      const animationDuration = 500; // 0.5 seconds
+      const startTime = Date.now();
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / animationDuration, 1);
+        
+        // Ease-in-out curve
+        const eased = progress < 0.5 
+          ? 2 * progress * progress 
+          : -1 + (4 - 2 * progress) * progress;
+        
+        // Interpolate rotation
+        meshRef.current!.rotation.y = startRotation + (targetRotation - startRotation) * eased;
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+      
+      animate();
+    }
+  }, [activeArea]);
+  
   // Animate camera when active area changes
   useEffect(() => {
     if (controlsRef.current && activeArea && cameraPositions[activeArea]) {
@@ -151,7 +181,7 @@ function Face3DModel({
       animate();
     } else if (controlsRef.current && !activeArea) {
       // Return to default position
-      const defaultPosition = new THREE.Vector3(0, 0, 5);
+      const defaultPosition = new THREE.Vector3(0, 0, 8);
       const defaultTarget = new THREE.Vector3(0, 0, 0);
       
       const startPosition = camera.position.clone();
@@ -260,7 +290,7 @@ function Face3DModel({
   
   return (
     <>
-      <group ref={meshRef} position={[0, 0, 0]}>
+      <group ref={meshRef} position={[-2, 0, 0]}>
         <primitive 
           object={scene} 
           scale={[2, 2, 2]}
@@ -354,9 +384,9 @@ export const FaceModel = () => {
       {/* Boundless 3D Face Model */}
       {webGLSupported ? (
         <Canvas
-          camera={{ position: [0, 0, 5], fov: 45 }}
-          style={{ background: 'black' }}
-          gl={{ antialias: true, alpha: false }}
+          camera={{ position: [0, 0, 8], fov: 45 }}
+          style={{ background: 'white' }}
+          gl={{ antialias: true, alpha: true }}
         >
           {/* Lighting setup for better visualization */}
           <ambientLight intensity={0.5} />
