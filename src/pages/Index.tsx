@@ -13,10 +13,9 @@ const Index = () => {
       </div>
 
       {/* 3D Face Model - Positioned on the left side */}
-      <div className="fixed left-0 top-0 w-[calc(100vw-420px)] h-screen border-r border-gray-800 bg-white">
+      <div className="fixed left-0 top-0 w-[calc(100vw-420px)] h-screen bg-white">
         <FaceModel />
       </div>
-
       {/* Compact Ingredient Database Overlay - Fixed on the right */}
       <div className="fixed top-0 right-0 w-96 h-screen p-4">
         <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-2xl h-full overflow-hidden">

@@ -1,33 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-interface SupabaseIngredient {
-  INGREDIENT_NAME: string;
-  CAS_NUMBER: number | null;
-  ROUTE: string | null;
-  UNII: string | null;
-  POTENCY_AMOUNT: string | null;
-  POTENCY_UNIT: string | null;
-  MAXIMUM_DAILY_EXPOSURE: string | null;
-  MAXIMUM_DAILY_EXPOSURE_UNIT: string | null;
-  RECORD_UPDATED: string | null;
-  database: string | null;
-  DESCRIPTION: string | null;
-}
-
-interface ProcessedIngredient {
-  id: string;
-  name: string;
-  category: 'hydrating' | 'anti-aging' | 'acne-fighting' | 'brightening' | 'sensitive';
-  description: string;
-  benefits: string[];
-  skinTypes: string[];
-  concerns: string[];
-  casNumber?: string;
-  route?: string;
-  potency?: string;
-  maxExposure?: string;
-}
+import { 
+  processIngredients, 
+  ProcessedIngredient,
+  SupabaseIngredient 
+} from '@/lib/ingredientProcessor';
 
 interface FilterParams {
   search?: string;
@@ -44,110 +21,6 @@ interface IngredientsResponse {
   hasMore: boolean;
 }
 
-// Helper functions remain the same
-const categorizeIngredient = (name: string, route: string | null): ProcessedIngredient['category'] => {
-  const nameLower = name.toLowerCase();
-  const routeLower = route?.toLowerCase() || '';
-  
-  if (nameLower.includes('acid') && (nameLower.includes('hyaluronic') || nameLower.includes('sodium'))) {
-    return 'hydrating';
-  }
-  if (nameLower.includes('retinol') || nameLower.includes('vitamin a') || nameLower.includes('palmitate')) {
-    return 'anti-aging';
-  }
-  if (nameLower.includes('salicylic') || nameLower.includes('benzoyl') || routeLower.includes('acne')) {
-    return 'acne-fighting';
-  }
-  if (nameLower.includes('vitamin c') || nameLower.includes('ascorbic') || nameLower.includes('kojic')) {
-    return 'brightening';
-  }
-  if (nameLower.includes('ceramide') || nameLower.includes('allantoin') || nameLower.includes('panthenol')) {
-    return 'sensitive';
-  }
-  
-  return 'hydrating';
-};
-
-const generateBenefits = (name: string, category: ProcessedIngredient['category']): string[] => {
-  switch (category) {
-    case 'hydrating':
-      return ['Moisturizes skin', 'Plumps appearance', 'Smooth texture'];
-    case 'anti-aging':
-      return ['Reduces fine lines', 'Improves firmness', 'Evens texture'];
-    case 'acne-fighting':
-      return ['Clears pores', 'Reduces breakouts', 'Controls oil'];
-    case 'brightening':
-      return ['Evens skin tone', 'Reduces dark spots', 'Adds glow'];
-    case 'sensitive':
-      return ['Soothes irritation', 'Strengthens barrier', 'Calms redness'];
-    default:
-      return ['Improves skin health'];
-  }
-};
-
-const getSkinTypes = (category: ProcessedIngredient['category']): string[] => {
-  switch (category) {
-    case 'hydrating':
-      return ['All skin types'];
-    case 'anti-aging':
-      return ['Normal', 'Dry', 'Mature'];
-    case 'acne-fighting':
-      return ['Oily', 'Acne-prone', 'Combination'];
-    case 'brightening':
-      return ['All skin types'];
-    case 'sensitive':
-      return ['Sensitive', 'Dry', 'Irritated'];
-    default:
-      return ['All skin types'];
-  }
-};
-
-const getConcerns = (category: ProcessedIngredient['category']): string[] => {
-  switch (category) {
-    case 'hydrating':
-      return ['Dryness', 'Dehydration', 'Fine lines'];
-    case 'anti-aging':
-      return ['Wrinkles', 'Loss of firmness', 'Age spots'];
-    case 'acne-fighting':
-      return ['Acne', 'Blackheads', 'Oily skin'];
-    case 'brightening':
-      return ['Dark spots', 'Uneven tone', 'Dullness'];
-    case 'sensitive':
-      return ['Irritation', 'Redness', 'Sensitivity'];
-    default:
-      return ['General skin health'];
-  }
-};
-
-const processIngredient = (ingredient: SupabaseIngredient): ProcessedIngredient => {
-  const category = categorizeIngredient(ingredient.INGREDIENT_NAME, ingredient.ROUTE);
-  const benefits = generateBenefits(ingredient.INGREDIENT_NAME, category);
-  const skinTypes = getSkinTypes(category);
-  const concerns = getConcerns(category);
-  
-  const potency = ingredient.POTENCY_AMOUNT && ingredient.POTENCY_UNIT 
-    ? `${ingredient.POTENCY_AMOUNT} ${ingredient.POTENCY_UNIT}`
-    : undefined;
-    
-  const maxExposure = ingredient.MAXIMUM_DAILY_EXPOSURE && ingredient.MAXIMUM_DAILY_EXPOSURE_UNIT
-    ? `${ingredient.MAXIMUM_DAILY_EXPOSURE} ${ingredient.MAXIMUM_DAILY_EXPOSURE_UNIT}`
-    : undefined;
-
-  return {
-    id: ingredient.CAS_NUMBER?.toString() || ingredient.INGREDIENT_NAME,
-    name: ingredient.INGREDIENT_NAME,
-    category,
-    description: ingredient.DESCRIPTION || `A scientifically-backed ingredient${potency ? ` with ${potency} potency` : ''}${ingredient.ROUTE ? ` for ${ingredient.ROUTE.toLowerCase()} application` : ''}.`,
-    benefits,
-    skinTypes,
-    concerns,
-    casNumber: ingredient.CAS_NUMBER?.toString(),
-    route: ingredient.ROUTE,
-    potency,
-    maxExposure
-  };
-};
-
 export const useIngredients = (filters: FilterParams = {}) => {
   const { page = 1, limit = 50, search, category, hasData, sortBy = 'name' } = filters;
   
@@ -159,13 +32,34 @@ export const useIngredients = (filters: FilterParams = {}) => {
       try {
         let query = supabase.from('ingredients').select('*', { count: 'exact' });
         
-        // Apply search filter
-        if (search) {
-          query = query.or(`INGREDIENT_NAME.ilike.%${search}%,DESCRIPTION.ilike.%${search}%,CAS_NUMBER.eq.${search}`);
+        // Apply search filter with partial match and case-insensitive searching
+        if (search && search.trim()) {
+          const searchTerm = search.trim();
+          // Escape special characters that might interfere with the query
+          // Use % wildcards for PostgreSQL ilike (case-insensitive partial matching)
+          // Supabase will handle URL encoding automatically
+          const escapedTerm = searchTerm.replace(/%/g, '\\%').replace(/_/g, '\\_');
+          const searchPattern = `%${escapedTerm}%`;
+          
+          // Build OR conditions for case-insensitive partial matching
+          // Search in INGREDIENT_NAME and DESCRIPTION fields
+          const searchConditions = [
+            `INGREDIENT_NAME.ilike.${searchPattern}`,
+            `DESCRIPTION.ilike.${searchPattern}`
+          ];
+          
+          // If search term is purely numeric, also search CAS_NUMBER
+          // Cast CAS_NUMBER to text for partial matching support
+          // Note: PostgREST may support this syntax; if not, search will still work
+          // for INGREDIENT_NAME and DESCRIPTION fields
+          if (/^\d+$/.test(searchTerm)) {
+            searchConditions.push(`CAS_NUMBER::text.ilike.${searchPattern}`);
+          }
+          
+          // Apply OR filter - matches if ANY condition is true
+          // This enables searching across multiple columns simultaneously
+          query = query.or(searchConditions.join(','));
         }
-        
-        // Apply category filter (this would need to be done post-processing since categories are derived)
-        // For now, we'll handle this in the frontend
         
         // Apply data availability filters
         if (hasData === 'with-cas') {
@@ -186,8 +80,7 @@ export const useIngredients = (filters: FilterParams = {}) => {
         // Apply pagination
         const from = (page - 1) * limit;
         const to = from + limit - 1;
-        query = query.range(from, to);
-        
+        query = query.range(from, to);        
         const { data, error, count } = await query;
         
         if (error) {
@@ -201,7 +94,8 @@ export const useIngredients = (filters: FilterParams = {}) => {
           return { data: [], totalCount: 0, hasMore: false };
         }
         
-        let processed = data.map(processIngredient);
+        // Process ingredients using centralized processor
+        let processed = processIngredients(data as SupabaseIngredient[]);
         
         // Apply category filter post-processing
         if (category && category !== 'all') {
@@ -226,7 +120,6 @@ export const useIngredients = (filters: FilterParams = {}) => {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
-
 // Hook for getting total count
 export const useIngredientsCount = () => {
   return useQuery({

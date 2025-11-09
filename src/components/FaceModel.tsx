@@ -1,19 +1,20 @@
-import { useState, useRef, useEffect, Suspense } from 'react';
-import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Html } from '@react-three/drei';
+import { useState, useRef, useEffect } from 'react';
+import Spline from '@splinetool/react-spline';
 import { Card } from '@/components/ui/card';
+import { Application } from '@splinetool/runtime';
 import * as THREE from 'three';
 
 type FaceArea = 'forehead' | 'eyes' | 'cheeks' | 'nose' | 'mouth' | 'chin' | null;
 
-// Camera positions for each face area - fixed camera position, only orientation changes
-const cameraPositions: Record<FaceArea, { position: [number, number, number]; target: [number, number, number] }> = {
-  forehead: { position: [0, 0, 8], target: [-2, 0.8, 0] },
-  eyes: { position: [0, 0, 8], target: [-2, 0.2, 0] },
-  cheeks: { position: [0, 0, 8], target: [-1.2, 0, 0] },
-  nose: { position: [0, 0, 8], target: [-2, -0.1, 0] },
-  mouth: { position: [0, 0, 8], target: [-2, -0.3, 0] },
-  chin: { position: [0, 0, 8], target: [-2, -0.8, 0] }
+// Map Spline object names to face areas
+const splineToFaceAreaMap: Record<string, FaceArea> = {
+  'face_eyes': 'eyes',
+  'face_nose': 'nose',
+  'face_mouth': 'mouth',
+  'face_cheeks': 'cheeks',
+  'face_chin': 'chin',
+  'face_forehead': 'forehead',
+  // face_else is not mapped as it's not a selectable area
 };
 
 // Face area information
@@ -35,7 +36,8 @@ const areaInfo = {
     concerns: ['Dryness', 'Redness', 'Loss of firmness'],
     ingredients: ['Ceramides', 'Vitamin C', 'Collagen'],
     color: '#fef3c7'
-  },  nose: {
+  },
+  nose: {
     title: 'Nose',
     concerns: ['Blackheads', 'Large pores', 'Oiliness'],
     ingredients: ['BHA', 'Charcoal', 'Clay'],
@@ -55,371 +57,443 @@ const areaInfo = {
   }
 };
 
-// Mesh name mapping - maps face areas to actual mesh names in the GLB
-const meshNameMap: Record<FaceArea, string> = {
-  forehead: 'face_forehead',
-  eyes: 'face_eyes',
-  cheeks: 'face_cheeks',
-  nose: 'face_nose',
-  mouth: 'face_mouth',
-  chin: 'face_chin'
-};
-
-// Face 3D Model component with mesh interaction and camera animation
-function Face3DModel({ 
-  activeArea, 
-  hoveredArea, 
-  onHover, 
-  onClick 
-}: { 
-  activeArea: FaceArea; 
-  hoveredArea: FaceArea; 
-  onHover: (area: FaceArea) => void; 
-  onClick: (area: FaceArea) => void; 
-}) {
-  const { scene } = useGLTF('/src/meshed_face_model.glb');
-  const meshRef = useRef<THREE.Group>(null);
-  const [originalMaterials] = useState<Map<string, THREE.Material | THREE.Material[]>>(new Map());
-  const { camera, gl } = useThree();
-  const controlsRef = useRef<any>(null);
-  
-  // Store original materials on first render
-  useEffect(() => {
-    scene.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material) {
-        originalMaterials.set(child.name, child.material);
-      }
-    });
-  }, [scene, originalMaterials]);
-  
-  // Auto-rotate when no zone is active
-  useFrame((state, delta) => {
-    if (meshRef.current && !activeArea) {
-      meshRef.current.rotation.y += delta * 0.2;
-    }
-  });
-  
-  // Reset rotation when active area changes
-  useEffect(() => {
-    if (meshRef.current && activeArea) {
-      // Animate rotation back to face left
-      const startRotation = meshRef.current.rotation.y;
-      const targetRotation = Math.PI / 4; // 45 degrees to face left
-      const animationDuration = 500; // 0.5 seconds
-      const startTime = Date.now();
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / animationDuration, 1);
-        
-        // Ease-in-out curve
-        const eased = progress < 0.5 
-          ? 2 * progress * progress 
-          : -1 + (4 - 2 * progress) * progress;
-        
-        // Interpolate rotation
-        meshRef.current!.rotation.y = startRotation + (targetRotation - startRotation) * eased;
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-      };
-      
-      animate();
-    }
-  }, [activeArea]);
-  
-  // Animate camera when active area changes
-  useEffect(() => {
-    if (controlsRef.current && activeArea && cameraPositions[activeArea]) {
-      const targetPosition = cameraPositions[activeArea];
-      
-      // Smoothly animate camera position
-      const startPosition = camera.position.clone();
-      const startTarget = controlsRef.current.target.clone();
-      
-      // Disable controls during animation
-      controlsRef.current.enabled = false;
-      
-      let progress = 0;
-      const animationDuration = 1000; // 1 second
-      const startTime = Date.now();
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        progress = Math.min(elapsed / animationDuration, 1);
-        
-        // Ease-in-out curve
-        const eased = progress < 0.5 
-          ? 2 * progress * progress 
-          : -1 + (4 - 2 * progress) * progress;
-        
-        // Interpolate camera position
-        camera.position.lerpVectors(
-          startPosition,
-          new THREE.Vector3(...targetPosition.position),
-          eased
-        );
-        
-        // Interpolate look-at target
-        controlsRef.current.target.lerpVectors(
-          startTarget,
-          new THREE.Vector3(...targetPosition.target),
-          eased
-        );
-        
-        controlsRef.current.update();
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          // Re-enable controls after animation
-          controlsRef.current.enabled = true;
-        }
-      };
-      
-      animate();
-    } else if (controlsRef.current && !activeArea) {
-      // Return to default position
-      const defaultPosition = new THREE.Vector3(0, 0, 8);
-      const defaultTarget = new THREE.Vector3(0, 0, 0);
-      
-      const startPosition = camera.position.clone();
-      const startTarget = controlsRef.current.target.clone();
-      
-      // Disable controls during animation
-      controlsRef.current.enabled = false;
-      
-      let progress = 0;
-      const animationDuration = 800;
-      const startTime = Date.now();
-      
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        progress = Math.min(elapsed / animationDuration, 1);
-        
-        const eased = progress < 0.5 
-          ? 2 * progress * progress 
-          : -1 + (4 - 2 * progress) * progress;
-        
-        camera.position.lerpVectors(startPosition, defaultPosition, eased);
-        controlsRef.current.target.lerpVectors(startTarget, defaultTarget, eased);
-        controlsRef.current.update();
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          // Re-enable controls after animation
-          controlsRef.current.enabled = true;
-        }
-      };
-      
-      animate();
-    }
-  }, [activeArea, camera]);
-  
-  // Handle mesh interactions
-  const handleMeshClick = (event: ThreeEvent<MouseEvent>) => {
-    event.stopPropagation();
-    const meshName = event.object.name;
-    
-    // Find which face area this mesh corresponds to
-    const faceArea = Object.entries(meshNameMap).find(
-      ([_, meshMapName]) => meshMapName === meshName
-    )?.[0] as FaceArea | undefined;
-    
-    if (faceArea) {
-      onClick(faceArea);
-      // Clear hover state when clicking
-      onHover(null);
-      gl.domElement.style.cursor = 'auto';
-    }
-  };
-  
-  const handleMeshHover = (event: ThreeEvent<PointerEvent>) => {
-    event.stopPropagation();
-    const meshName = event.object.name;
-    
-    // Find which face area this mesh corresponds to
-    const faceArea = Object.entries(meshNameMap).find(
-      ([_, meshMapName]) => meshMapName === meshName
-    )?.[0] as FaceArea | undefined;
-    
-    if (faceArea) {
-      onHover(faceArea);
-      gl.domElement.style.cursor = 'pointer';
-    }
-  };
-  
-  const handleMeshUnhover = () => {
-    onHover(null);
-    gl.domElement.style.cursor = 'auto';
-  };
-  
-  // Update mesh materials based on hover/active state
-  useEffect(() => {
-    scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        const faceArea = Object.entries(meshNameMap).find(
-          ([_, meshMapName]) => meshMapName === child.name
-        )?.[0] as FaceArea | undefined;
-        
-        if (faceArea && child.material) {
-          const isActive = activeArea === faceArea;
-          const isHovered = hoveredArea === faceArea;
-          
-          // Clone material to avoid affecting original
-          const material = (originalMaterials.get(child.name) as THREE.Material).clone() as THREE.MeshStandardMaterial;
-          
-          if (isActive) {
-            material.emissive = new THREE.Color('#ec4899');
-            material.emissiveIntensity = 0.3;
-          } else if (isHovered) {
-            material.emissive = new THREE.Color('#a78bfa');
-            material.emissiveIntensity = 0.2;
-          }
-          
-          child.material = material;
-        } else if (child.name === 'face_else' && child.material) {
-          // Ensure face_else mesh is not highlighted
-          child.material = originalMaterials.get(child.name) || child.material;
-        }
-      }
-    });
-  }, [scene, activeArea, hoveredArea, originalMaterials]);
-  
-  return (
-    <>
-      <group ref={meshRef} position={[-2, 0, 0]}>
-        <primitive 
-          object={scene} 
-          scale={[2, 2, 2]}
-          onPointerDown={handleMeshClick}
-          onPointerOver={handleMeshHover}
-          onPointerOut={handleMeshUnhover}
-        />
-      </group>
-      <OrbitControls 
-        ref={controlsRef}
-        enablePan={false}
-        maxDistance={8}
-        minDistance={3}
-        maxPolarAngle={Math.PI * 0.8}
-        minPolarAngle={Math.PI * 0.2}
-        target={[0, 0, 0]}
-      />
-    </>
-  );
-}
-
-// Loading component
-function LoadingFace() {
-  return (
-    <Html center>
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mb-4"></div>
-        <p className="text-sm text-gray-600">Loading 3D model...</p>
-      </div>
-    </Html>
-  );
-}
-
-// Fallback for browsers that don't support WebGL
-function FallbackView({ activeArea, onAreaClick }: {
-  activeArea: FaceArea;
-  onAreaClick: (area: FaceArea) => void;
-}) {
-  return (
-    <div className="p-6 bg-gray-50 rounded-lg text-center">
-      <p className="text-sm text-gray-600 mb-4">
-        3D view not supported. Use the buttons below to explore face areas:
-      </p>
-      <div className="grid grid-cols-3 gap-2">
-        {(Object.keys(areaInfo) as FaceArea[]).map((area) => (
-          <button
-            key={area}
-            onClick={() => onAreaClick(area)}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeArea === area
-                ? 'bg-rose-500 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            {areaInfo[area!].title}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Main FaceModel component
+// Main FaceModel component with Spline zone interaction
 export const FaceModel = () => {
   const [activeArea, setActiveArea] = useState<FaceArea>(null);
   const [hoveredArea, setHoveredArea] = useState<FaceArea>(null);
-  const [webGLSupported, setWebGLSupported] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const splineRef = useRef<Application | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Check WebGL support on mount
+  // ═══════════════════════════════════════════════════════════════════════
+  // CORE: Spline Load Event Handler
+  // Sets up raycasting for facial zone detection and disables rotation
+  // ═══════════════════════════════════════════════════════════════════════
+  const onSplineLoad = (splineApp: Application) => {
+    setIsLoading(false);
+    splineRef.current = splineApp;
+
+    const app = splineApp as any;
+
+    console.log('🎬 Spline app loaded');
+    console.log('📦 Available keys:', Object.keys(app));
+    console.log('🔍 Has renderer:', !!app.renderer);
+    console.log('🔍 Has scene:', !!app.scene);
+
+    // Wait for renderer and scene to be ready (with retry mechanism)
+    const setupRaycaster = () => {
+      // Try multiple ways to access renderer and scene
+      const renderer = app.renderer || app._renderer || app.webgl?.renderer;
+      const scene = app.scene || app._scene || app.webgl?.scene;
+      const canvas = renderer?.domElement || app.canvas || document.querySelector('canvas');
+
+      if (!canvas || !scene) {
+        console.log(`⏳ Waiting... Canvas: ${!!canvas}, Scene: ${!!scene}, Renderer: ${!!renderer}`);
+        return false;
+      }
+
+      console.log('✓ Renderer and scene ready, setting up raycaster');
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Scene References (using already extracted variables)
+      // ─────────────────────────────────────────────────────────────────────
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      const objectToFaceAreaMap = new Map<any, FaceArea>();
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Section 1: Face Zone Object Mapping
+      // ─────────────────────────────────────────────────────────────────────
+      const markObjectWithFaceArea = (obj: any, objectName: string, faceArea: FaceArea) => {
+        (obj as any).__faceAreaName = objectName;
+        (obj as any).__faceArea = faceArea;
+        if (!obj.name) obj.name = objectName;
+        objectToFaceAreaMap.set(obj, faceArea);
+      };
+
+      const populateObjectMap = () => {
+        objectToFaceAreaMap.clear();
+
+        Object.keys(splineToFaceAreaMap).forEach(objectName => {
+          const splineObject = splineApp.findObjectByName(objectName);
+          if (!splineObject) {
+            console.warn(`⚠️ Missing object in scene: ${objectName}`);
+            return;
+          }
+
+          console.log(`✓ Found Spline object: ${objectName}`);
+          const faceArea = splineToFaceAreaMap[objectName];
+
+          // Extract underlying Three.js object
+          const threeObject = (splineObject as any).nativeObject ||
+                             (splineObject as any)._object ||
+                             splineObject;
+
+          if (threeObject?.isObject3D) {
+            markObjectWithFaceArea(threeObject, objectName, faceArea);
+            threeObject.traverse((child: any) =>
+              markObjectWithFaceArea(child, objectName, faceArea)
+            );
+          } else {
+            // Fallback: Search scene by name
+            scene.traverse((obj: any) => {
+              if (obj.name === objectName) {
+                markObjectWithFaceArea(obj, objectName, faceArea);
+                obj.traverse((child: any) =>
+                  markObjectWithFaceArea(child, objectName, faceArea)
+                );
+              }
+            });
+          }
+        });
+
+        console.log(`✓ Mapped ${objectToFaceAreaMap.size} objects to face areas`);
+      };
+
+      // Populate immediately and with delays for late-loading objects
+      [0, 100, 500].forEach(delay => setTimeout(populateObjectMap, delay));
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Section 2: Camera Positioning & Rotation Control Lockdown
+      // ─────────────────────────────────────────────────────────────────────
+      const setupCamera = () => {
+        try {
+          const camera = app.camera;
+          if (camera && camera.position) {
+            // Move camera closer by reducing the z position
+            // Original z might be around 1000-1500, we'll move it to about 70% of original
+            const currentZ = camera.position.z;
+            const newZ = currentZ * 0.6; // Move 40% closer
+
+            camera.position.set(
+              camera.position.x,
+              camera.position.y,
+              newZ
+            );
+
+            console.log(`✓ Camera moved closer: z from ${currentZ.toFixed(2)} to ${newZ.toFixed(2)}`);
+          }
+        } catch (error) {
+          console.warn('Could not adjust camera position:', error);
+        }
+      };
+
+      const disableRotation = () => {
+        try {
+          if (app.controls) {
+            app.controls.enableRotate = false;
+            app.controls.enablePan = false;
+          }
+
+          app.getAllCameras?.()?.forEach((camera: any) => {
+            if (camera.userData?.controls) {
+              camera.userData.controls.enableRotate = false;
+              camera.userData.controls.enablePan = false;
+            }
+          });
+        } catch (error) {
+          console.warn('Could not disable rotation:', error);
+        }
+      };
+
+      // Adjust camera position
+      setupCamera();
+
+      // Apply rotation lock with progressive delays
+      [0, 100, 500].forEach(delay => setTimeout(disableRotation, delay));
+
+      // Continuously enforce rotation lock
+      const enforcementInterval = setInterval(() => {
+        if (app.controls?.enableRotate === true) {
+          app.controls.enableRotate = false;
+          app.controls.enablePan = false;
+        }
+      }, 500);
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Section 3: Raycasting Utilities
+      // ─────────────────────────────────────────────────────────────────────
+      const getCamera = (): any => {
+        if (app.camera) return app.camera;
+
+        let camera: any = null;
+        scene.traverse((obj: any) => {
+          if (obj.isCamera && !camera) camera = obj;
+        });
+        return camera;
+      };
+
+      const getInteractableObjects = (): any[] => {
+        const objects: any[] = [];
+        scene.traverse((object: any) => {
+          if (object.visible && (object.isMesh || object.geometry)) {
+            objects.push(object);
+          }
+        });
+        return objects;
+      };
+
+      const findFaceAreaFromObject = (object: any): FaceArea | null => {
+        let current: any = object;
+
+        while (current) {
+          // Check map first (fastest)
+          if (objectToFaceAreaMap.has(current)) {
+            return objectToFaceAreaMap.get(current) || null;
+          }
+
+          // Check stored metadata
+          const storedArea = (current as any).__faceArea;
+          if (storedArea) return storedArea;
+
+          // Check by name
+          const areaName = (current as any).__faceAreaName || current.name;
+          if (areaName && splineToFaceAreaMap[areaName]) {
+            return splineToFaceAreaMap[areaName];
+          }
+
+          current = current.parent;
+        }
+
+        return null;
+      };
+
+      const performRaycast = (): FaceArea | null => {
+        const camera = getCamera();
+        if (!camera) {
+          console.warn('Camera not found for raycasting');
+          return null;
+        }
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(getInteractableObjects(), true);
+
+        return intersects.length > 0
+          ? findFaceAreaFromObject(intersects[0].object)
+          : null;
+      };
+
+      const updateMousePosition = (event: MouseEvent) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      };
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Section 4: Mouse Event Handling
+      // ─────────────────────────────────────────────────────────────────────
+      let mouseDownTime = 0;
+      let mouseDownX = 0;
+      let mouseDownY = 0;
+      let isDragging = false;
+
+      const handleMouseDown = (event: MouseEvent) => {
+        mouseDownTime = Date.now();
+        mouseDownX = event.clientX;
+        mouseDownY = event.clientY;
+        isDragging = false;
+        updateMousePosition(event);
+      };
+
+      const handleMouseMove = (event: MouseEvent) => {
+        updateMousePosition(event);
+
+        // Detect dragging
+        if (mouseDownTime > 0) {
+          const distance = Math.hypot(
+            event.clientX - mouseDownX,
+            event.clientY - mouseDownY
+          );
+          if (distance > 5) isDragging = true;
+        }
+
+        // Update hover state
+        try {
+          const faceArea = performRaycast();
+          if (faceArea) {
+            setHoveredArea(faceArea);
+            document.body.style.cursor = 'pointer';
+          } else {
+            setHoveredArea(null);
+            document.body.style.cursor = 'auto';
+          }
+        } catch (error) {
+          console.warn('Error in hover raycasting:', error);
+        }
+      };
+
+      const handleMouseUp = (event: MouseEvent) => {
+        const clickDuration = Date.now() - mouseDownTime;
+        const moveDistance = Math.hypot(
+          event.clientX - mouseDownX,
+          event.clientY - mouseDownY
+        );
+
+        // Only process as click if not a drag
+        if (!isDragging && clickDuration < 300 && moveDistance < 5) {
+          updateMousePosition(event);
+
+          try {
+            const faceArea = performRaycast();
+            if (faceArea) {
+              setActiveArea(prev => prev === faceArea ? null : faceArea);
+              console.log(`✓ Clicked on face area: ${faceArea}`);
+            }
+          } catch (error) {
+            console.warn('Error in click raycasting:', error);
+          }
+        }
+
+        mouseDownTime = 0;
+        isDragging = false;
+      };
+
+      const handleMouseLeave = () => {
+        setHoveredArea(null);
+        document.body.style.cursor = 'auto';
+        mouseDownTime = 0;
+        isDragging = false;
+      };
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Section 5: Event Listener Registration & Cleanup
+      // ─────────────────────────────────────────────────────────────────────
+      canvas.addEventListener('mousedown', handleMouseDown);
+      canvas.addEventListener('mousemove', handleMouseMove);
+      canvas.addEventListener('mouseup', handleMouseUp);
+      canvas.addEventListener('mouseleave', handleMouseLeave);
+
+      app.__raycasterCleanup = () => {
+        canvas.removeEventListener('mousedown', handleMouseDown);
+        canvas.removeEventListener('mousemove', handleMouseMove);
+        canvas.removeEventListener('mouseup', handleMouseUp);
+        canvas.removeEventListener('mouseleave', handleMouseLeave);
+        clearInterval(enforcementInterval);
+      };
+
+      app.__rotationLockInterval = enforcementInterval;
+      console.log('✓ Raycaster set up for click and hover detection');
+
+      return true; // Setup successful
+    };
+
+    // Try to setup raycaster with extended retry mechanism
+    const retrySetup = (attempt: number = 1, maxAttempts: number = 10) => {
+      if (setupRaycaster()) {
+        console.log(`✓ Raycaster setup successful on attempt ${attempt}`);
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        console.warn('⚠️  Raycaster setup skipped - scene not ready');
+        console.log('💡 Face zone interactions may not work without raycaster');
+        console.log('🔍 App structure:', {
+          appKeys: Object.keys(app).join(', '),
+          hasRenderer: !!app.renderer,
+          hasScene: !!app.scene,
+          canvasInDOM: !!document.querySelector('canvas'),
+        });
+        // Don't block the app from loading - raycasting is optional
+        return;
+      }
+
+      const delay = Math.min(100 * attempt, 1000); // Progressive delay up to 1s
+      setTimeout(() => retrySetup(attempt + 1, maxAttempts), delay);
+    };
+
+    retrySetup();
+  };
+
+  // Event handlers are no longer needed - raycaster handles everything
+  // Keeping empty handlers to avoid warnings
+  const onSplineMouseDown = () => {};
+  const onSplineMouseHover = () => {};
+  const onSplineMouseExit = () => {};
+
+
+  // Cleanup on unmount
   useEffect(() => {
-    try {
-      const canvas = document.createElement('canvas');
-      const supported = !!(window.WebGLRenderingContext && 
-        (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
-      setWebGLSupported(supported);
-    } catch(e) {
-      setWebGLSupported(false);
-    }
+    const container = containerRef.current;
+    if (!container) return;
+
+    const preventContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    container.addEventListener('contextmenu', preventContextMenu);
+
+    return () => {
+      container.removeEventListener('contextmenu', preventContextMenu);
+      
+      // Cleanup raycaster event listeners
+      if (splineRef.current) {
+        const app = splineRef.current as any;
+        if (app.__raycasterCleanup) {
+          app.__raycasterCleanup();
+        }
+        if (app.__rotationLockInterval) {
+          clearInterval(app.__rotationLockInterval);
+        }
+      }
+    };
   }, []);
 
-  const handleAreaClick = (area: FaceArea) => {
-    setActiveArea(activeArea === area ? null : area);
-  };
-
-  const handleAreaHover = (area: FaceArea) => {
-    setHoveredArea(area);
-  };
-
   return (
-    <div className="fixed inset-0 w-full h-full">
-      {/* Boundless 3D Face Model */}
-      {webGLSupported ? (
-        <Canvas
-          camera={{ position: [0, 0, 8], fov: 45 }}
-          style={{ background: 'white' }}
-          gl={{ antialias: true, alpha: true }}
-        >
-          {/* Lighting setup for better visualization */}
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[5, 5, 5]} intensity={0.8} />
-          <directionalLight position={[-5, 5, -5]} intensity={0.4} />
-          <pointLight position={[0, 2, 2]} intensity={0.6} />
-          
-          {/* 3D Model with Suspense for loading */}
-          <Suspense fallback={<LoadingFace />}>
-            <Face3DModel 
-              activeArea={activeArea}
-              hoveredArea={hoveredArea}
-              onHover={handleAreaHover}
-              onClick={handleAreaClick}
-            />
-          </Suspense>
-        </Canvas>
-      ) : (
-        <FallbackView activeArea={activeArea} onAreaClick={handleAreaClick} />
+    <>
+      {/* Spline 3D Model Container */}
+      <div
+        ref={containerRef}
+        style={{
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
+        }}
+        className="fixed inset-0 w-full h-full"
+      >
+        <Spline
+          scene="https://prod.spline.design/ObB3WG6BMBOBetPq/scene.splinecode"
+          onLoad={onSplineLoad}
+          onMouseDown={onSplineMouseDown}
+          onMouseOver={onSplineMouseHover}
+          onMouseOut={onSplineMouseExit}
+          className="w-full h-full"
+        />
+      </div>
+
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="fixed inset-0 flex items-center justify-center bg-white z-10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mb-4 mx-auto"></div>
+            <p className="text-sm text-gray-600">Loading 3D model...</p>
+          </div>
+        </div>
       )}
-      
+
       {/* Hover tooltip */}
-      {hoveredArea && webGLSupported && (
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
+      {hoveredArea && (
+        <div className="fixed top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-md z-20 pointer-events-none">
           <p className="text-sm font-medium text-gray-700">{areaInfo[hoveredArea].title}</p>
         </div>
-      )}      
+      )}
       
-      {/* Area Information Card - Floating overlay at bottom left of scene */}
+      {/* Area Information Card - Shows when a zone is clicked */}
       {activeArea && (
-        <div className="absolute bottom-6 left-6 w-80 animate-fade-in">
-          <Card className="p-4 bg-white/90 backdrop-blur-sm border-gray-200 shadow-xl">
-            <h3 className="font-semibold text-lg text-gray-800 mb-2">
+        <div className="fixed bottom-6 left-6 w-80 animate-fade-in z-20">
+          <Card className="p-4 bg-white/95 backdrop-blur-sm border-gray-200 shadow-xl">
+            {/* Close button */}
+            <button
+              onClick={() => setActiveArea(null)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close"
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 6l8 8M14 6l-8 8" />
+              </svg>
+            </button>
+            
+            <h3 className="font-semibold text-lg text-gray-800 mb-2 pr-6">
               {areaInfo[activeArea].title}
             </h3>
             <div className="space-y-3">
@@ -444,7 +518,6 @@ export const FaceModel = () => {
                       key={index}
                       className="px-2 py-1 bg-violet-100 text-violet-700 text-xs rounded-full font-medium cursor-pointer hover:bg-violet-200 transition-colors"
                       onClick={() => {
-                        // TODO: Link to ingredient search
                         console.log('Search for ingredient:', ingredient);
                       }}
                     >
@@ -456,16 +529,21 @@ export const FaceModel = () => {
             </div>
           </Card>
         </div>
-      )}      
-      
+      )}
+
       {/* Instructions overlay */}
-      <div className="absolute bottom-6 left-6 text-sm text-white/70">
-        <p className="md:hidden">Touch and drag to rotate • Tap zones to explore</p>
-        <p className="hidden md:block">Click and drag to rotate • Click zones to explore</p>
+      <div className="fixed bottom-6 right-6 text-sm text-gray-500 bg-white/80 backdrop-blur-sm px-3 py-2 rounded-lg">
+        <p className="md:hidden">Touch face areas to explore</p>
+        <p className="hidden md:block">Click on face areas to explore</p>
       </div>
-    </div>
+
+      {/* Debug info (remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-4 left-4 text-xs text-gray-400 bg-white/80 p-2 rounded">
+          <p>Active: {activeArea || 'none'}</p>
+          <p>Hovered: {hoveredArea || 'none'}</p>
+        </div>
+      )}
+    </>
   );
 };
-
-// Preload the GLB file
-useGLTF.preload('/src/meshed_face_model.glb');

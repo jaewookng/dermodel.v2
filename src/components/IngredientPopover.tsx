@@ -1,8 +1,7 @@
 
 import { PopoverContent } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Droplets, Shield, Zap, Heart, ExternalLink, BookOpen, FlaskConical } from 'lucide-react';
+import { Droplets, Shield, Zap, Heart, FlaskConical } from 'lucide-react';
 
 const categoryIcons = {
   hydrating: Droplets,
@@ -38,38 +37,9 @@ interface IngredientPopoverProps {
   ingredient: ProcessedIngredient;
 }
 
-// Generate scientific publication sources based on ingredient
-const generatePublicationSources = (ingredientName: string, casNumber?: string) => {
-  const sources = [
-    {
-      title: `Clinical efficacy of ${ingredientName.toLowerCase()} in dermatological applications`,
-      journal: "Journal of Cosmetic Dermatology",
-      year: "2023",
-      url: `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(ingredientName)}+dermatology`
-    },
-    {
-      title: `Safety assessment and toxicological profile of ${ingredientName.toLowerCase()}`,
-      journal: "International Journal of Toxicology",
-      year: "2022",
-      url: `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(ingredientName)}+safety+toxicology`
-    }
-  ];
-
-  if (casNumber) {
-    sources.push({
-      title: `Chemical properties and biological activity (CAS: ${casNumber})`,
-      journal: "Chemical Research in Toxicology",
-      year: "2023",
-      url: `https://pubmed.ncbi.nlm.nih.gov/?term=${casNumber}`
-    });
-  }
-
-  return sources;
-};
 
 export const IngredientPopover = ({ ingredient }: IngredientPopoverProps) => {
   const IconComponent = categoryIcons[ingredient.category];
-  const publicationSources = generatePublicationSources(ingredient.name, ingredient.casNumber);
   
   return (
     <PopoverContent className="w-96 p-0" side="left">
@@ -141,32 +111,6 @@ export const IngredientPopover = ({ ingredient }: IngredientPopoverProps) => {
             </div>
           )}
 
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <BookOpen className="h-3 w-3" />
-              Scientific Publications
-            </h4>
-            <div className="space-y-2">
-              {publicationSources.map((source, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-2">
-                  <h5 className="text-xs font-medium text-gray-800 mb-1">{source.title}</h5>
-                  <p className="text-xs text-gray-500 mb-1">{source.journal} ({source.year})</p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 text-xs px-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(source.url, '_blank');
-                    }}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    View on PubMed
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </PopoverContent>
