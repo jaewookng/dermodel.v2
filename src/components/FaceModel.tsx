@@ -163,7 +163,7 @@ export const FaceModel = () => {
             // Move camera closer by reducing the z position
             // Original z might be around 1000-1500, we'll move it to about 70% of original
             const currentZ = camera.position.z;
-            const newZ = currentZ * 0.6; // Move 40% closer
+            const newZ = currentZ * 0.4; // Move 60% closer
 
             camera.position.set(
               camera.position.x,
@@ -178,37 +178,8 @@ export const FaceModel = () => {
         }
       };
 
-      const disableRotation = () => {
-        try {
-          if (app.controls) {
-            app.controls.enableRotate = false;
-            app.controls.enablePan = false;
-          }
-
-          app.getAllCameras?.()?.forEach((camera: any) => {
-            if (camera.userData?.controls) {
-              camera.userData.controls.enableRotate = false;
-              camera.userData.controls.enablePan = false;
-            }
-          });
-        } catch (error) {
-          console.warn('Could not disable rotation:', error);
-        }
-      };
-
       // Adjust camera position
       setupCamera();
-
-      // Apply rotation lock with progressive delays
-      [0, 100, 500].forEach(delay => setTimeout(disableRotation, delay));
-
-      // Continuously enforce rotation lock
-      const enforcementInterval = setInterval(() => {
-        if (app.controls?.enableRotate === true) {
-          app.controls.enableRotate = false;
-          app.controls.enablePan = false;
-        }
-      }, 500);
 
       // ─────────────────────────────────────────────────────────────────────
       // Section 3: Raycasting Utilities
@@ -368,10 +339,8 @@ export const FaceModel = () => {
         canvas.removeEventListener('mousemove', handleMouseMove);
         canvas.removeEventListener('mouseup', handleMouseUp);
         canvas.removeEventListener('mouseleave', handleMouseLeave);
-        clearInterval(enforcementInterval);
       };
 
-      app.__rotationLockInterval = enforcementInterval;
       console.log('✓ Raycaster set up for click and hover detection');
 
       return true; // Setup successful
@@ -536,14 +505,6 @@ export const FaceModel = () => {
         <p className="md:hidden">Touch face areas to explore</p>
         <p className="hidden md:block">Click on face areas to explore</p>
       </div>
-
-      {/* Debug info (remove in production) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed top-4 left-4 text-xs text-gray-400 bg-white/80 p-2 rounded">
-          <p>Active: {activeArea || 'none'}</p>
-          <p>Hovered: {hoveredArea || 'none'}</p>
-        </div>
-      )}
     </>
   );
 };

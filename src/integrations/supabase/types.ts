@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ingredient_references: {
+        Row: {
+          id: string
+          ingredient_name: string
+          doi: string | null
+          title: string
+          authors: string
+          journal: string
+          year: number
+          url: string
+          summary: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ingredient_name: string
+          doi?: string | null
+          title: string
+          authors: string
+          journal: string
+          year: number
+          url: string
+          summary: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          ingredient_name?: string
+          doi?: string | null
+          title?: string
+          authors?: string
+          journal?: string
+          year?: number
+          url?: string
+          summary?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           CAS_NUMBER: number | null

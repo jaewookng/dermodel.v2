@@ -404,3 +404,93 @@ npm run preview
   - `0.8` = 20% closer
 
 **Result**: Face model appears larger and more prominent in the viewport, improving user engagement with facial zone interactions.
+
+---
+
+## 📚 DATABASE: Added ingredient_references Table Types (2025-11-09)
+
+**Change**: Added TypeScript types for the `ingredient_references` table in Supabase
+
+**Table Structure**:
+```typescript
+ingredient_references {
+  id: string (uuid)
+  ingredient_name: string
+  doi: string | null
+  title: string
+  authors: string
+  journal: string
+  year: number
+  url: string
+  summary: string
+  created_at: string
+}
+```
+
+**Purpose**: This table stores research paper references linked to skincare ingredients, including:
+- Scientific paper metadata (DOI, title, authors, journal, year)
+- Direct links to papers (Semantic Scholar URLs)
+- Summaries/abstracts of research findings
+- Linkage to ingredients by name
+
+**Files Modified**: `src/integrations/supabase/types.ts`
+
+**Status**:
+- ✅ TypeScript types added with full Row/Insert/Update interfaces
+- ✅ Types validated (no compilation errors)
+- ⏳ Not yet integrated into UI (planned for future)
+- ✅ Confirmed working in Supabase with sample data
+
+**Next Steps** (when ready):
+- ~~Create hook to fetch papers by ingredient name~~ ✅ COMPLETED
+- ~~Display papers in ingredient detail views~~ ✅ COMPLETED
+- Add paper filtering/search functionality (future enhancement)
+
+---
+
+## 🔗 FEATURE: Research Paper Links in Ingredient Table (2025-11-09)
+
+**Feature**: Added research paper hyperlinks to ingredient table expandable rows
+
+**Implementation**:
+
+1. **New Hook**: `src/hooks/useIngredientPapers.ts`
+   - Fetches papers from `ingredient_references` table by ingredient name
+   - Uses React Query for caching and automatic refetching
+   - Returns papers sorted by year (newest first)
+
+2. **New Component**: `src/components/IngredientPapers.tsx`
+   - Displays research papers under ingredient description
+   - Shows loading state while fetching
+   - Returns null if no papers found
+
+3. **Updated Component**: `src/components/IngredientTable.tsx`
+   - Integrated `IngredientPapers` component
+   - Removed old static papers interface
+   - Papers now fetched dynamically from Supabase
+
+**UI Design** (as requested):
+- ✅ **Position**: Directly underneath product description
+- ✅ **Layout**: One line per paper
+- ✅ **Truncation**: Long titles cut off with `...` using CSS `truncate`
+- ✅ **Blue background**: Subtle `bg-blue-50` with `px-1.5 py-0.5` padding
+- ✅ **Bullet points**: Small blue bullets (`●`) with `text-blue-400`
+- ✅ **Subtle styling**: `text-xs` size, rounded corners, minimal spacing
+- ✅ **Interactive**: Hover effects (underline + darker blue)
+- ✅ **Tooltip**: Full paper info shown on hover via `title` attribute
+
+**Files Created**:
+- `src/hooks/useIngredientPapers.ts`
+- `src/components/IngredientPapers.tsx`
+
+**Files Modified**:
+- `src/components/IngredientTable.tsx`
+
+**Example Display**:
+```
+[Ingredient Description]
+● Research paper title here which may be truncated...
+● Another paper title that is also truncated if...
+```
+
+**Result**: Users can now see and access relevant research papers for each ingredient directly in the ingredient table, with clean, subtle presentation that doesn't overwhelm the UI.

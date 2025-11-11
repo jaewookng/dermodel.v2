@@ -2,14 +2,8 @@ import { useState, Fragment } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, FileText } from 'lucide-react';
-
-interface ResearchPaper {
-  title: string;
-  authors: string;
-  year: number;
-  url: string;
-}
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { IngredientPapers } from './IngredientPapers';
 
 interface ProcessedIngredient {
   id: string;
@@ -23,7 +17,6 @@ interface ProcessedIngredient {
   route?: string;
   potency?: string;
   maxExposure?: string;
-  papers?: ResearchPaper[];
 }
 
 interface IngredientTableProps {
@@ -99,7 +92,10 @@ export const IngredientTable = ({ ingredients }: IngredientTableProps) => {
                   <TableRow>
                     <TableCell colSpan={4} className="p-3 bg-gray-50">
                       <div className="space-y-2 text-xs">
-                        <p className="text-gray-600">{ingredient.description}</p>
+                        <div>
+                          <p className="text-gray-600">{ingredient.description}</p>
+                          <IngredientPapers ingredientName={ingredient.name} />
+                        </div>
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>
                             <span className="font-medium text-gray-700">Benefits:</span>
@@ -130,31 +126,6 @@ export const IngredientTable = ({ ingredients }: IngredientTableProps) => {
                                 <p className="text-gray-600">{ingredient.maxExposure}</p>
                               </div>
                             )}
-                          </div>
-                        )}
-
-                        {/* Research Papers Section - To be implemented with Supabase data */}
-                        {ingredient.papers && ingredient.papers.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <div className="flex items-center gap-1 mb-2">
-                              <FileText className="h-3 w-3 text-gray-500" />
-                              <span className="font-medium text-gray-700">Research Papers:</span>
-                            </div>
-                            <div className="space-y-2">
-                              {ingredient.papers.map((paper, index) => (
-                                <div key={index} className="pl-4">
-                                  <a
-                                    href={paper.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 hover:underline block"
-                                  >
-                                    <div className="font-medium text-xs">{paper.title}</div>
-                                    <div className="text-gray-500 text-xs">{paper.authors} ({paper.year})</div>
-                                  </a>
-                                </div>
-                              ))}
-                            </div>
                           </div>
                         )}
                       </div>
