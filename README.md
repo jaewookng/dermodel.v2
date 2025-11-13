@@ -6,7 +6,7 @@ This project is a skincare analysis application, leveraging Supabase, React, and
 
 Dermodel is an independent project designed for comprehensive skincare analysis.
 
-## How can I try?
+## Where can I try?
 
 You can access the web app at www.dermodel.app
 
