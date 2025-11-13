@@ -13,6 +13,19 @@ export interface SupabaseIngredient {
   DESCRIPTION: string | null;
 }
 
+export interface COSINGIngredient {
+  "COSING Ref No": number;
+  "INCI name": string | null;
+  "INN name": string | null;
+  "Ph. Eur. Name": string | null;
+  "CAS No": string | null;
+  "EC No": string | null;
+  "Chem/IUPAC Name / Description": string | null;
+  Restriction: string | null;
+  Function: string | null;
+  "Update Date": string | null;
+}
+
 export interface ProcessedIngredient {
   id: string;
   name: string;
@@ -25,6 +38,10 @@ export interface ProcessedIngredient {
   route?: string;
   potency?: string;
   maxExposure?: string;
+  sources: string[];  // Data source badges: "USFDA" | "EU COSING"
+  functions: string[];  // Combined functions from both sources
+  restriction?: string;  // EU restrictions if any
+  ecNumber?: string;  // EU EC number
 }
 
 export type IngredientCategory = 
@@ -141,7 +158,9 @@ export const processIngredient = (ingredient: SupabaseIngredient): ProcessedIngr
     casNumber: ingredient.CAS_NUMBER?.toString(),
     route: ingredient.ROUTE || undefined,
     potency,
-    maxExposure
+    maxExposure,
+    sources: ['USFDA'],  // Default to USFDA for FDA ingredients
+    functions: []  // Will be populated during merge
   };
 };
 // Helper function to generate description
@@ -175,4 +194,90 @@ const generateDescription = (
 // Batch processing function for multiple ingredients
 export const processIngredients = (ingredients: SupabaseIngredient[]): ProcessedIngredient[] => {
   return ingredients.map(processIngredient);
+};
+
+// Parse COSING function string into array
+export const parseCosingFunctions = (functionString: string | null): string[] => {
+  if (!functionString) return [];
+
+  return functionString
+    .split(',')
+    .map(fn => fn.trim())
+    .filter(fn => fn.length > 0)
+    .map(fn => {
+      // Capitalize first letter of each word
+      return fn
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    });
+};
+
+// Process COSING ingredient
+export const processCosingIngredient = (cosing: COSINGIngredient): ProcessedIngredient => {
+  const name = cosing["INCI name"] || cosing["INN name"] || cosing["Ph. Eur. Name"] || "Unknown";
+  const casNumber = cosing["CAS No"]?.replace(/\s/g, '') || undefined;  // Remove spaces from CAS
+  const category = categorizeIngredient(name, null);
+  const functions = parseCosingFunctions(cosing.Function);
+
+  const description = cosing["Chem/IUPAC Name / Description"] ||
+    generateDescription(name, category, undefined, null);
+
+  return {
+    id: casNumber || `cosing-${cosing["COSING Ref No"]}`,
+    name,
+    category,
+    description,
+    benefits: CATEGORY_BENEFITS[category],
+    skinTypes: CATEGORY_SKIN_TYPES[category],
+    concerns: CATEGORY_CONCERNS[category],
+    casNumber,
+    sources: ['EU COSING'],
+    functions,
+    restriction: cosing.Restriction || undefined,
+    ecNumber: cosing["EC No"] || undefined
+  };
+};
+
+// Merge USFDA and COSING ingredients by CAS number
+export const mergeIngredients = (
+  fdaIngredients: ProcessedIngredient[],
+  cosingIngredients: ProcessedIngredient[]
+): ProcessedIngredient[] => {
+  const mergedMap = new Map<string, ProcessedIngredient>();
+
+  // Add all FDA ingredients to map
+  fdaIngredients.forEach(ingredient => {
+    const key = ingredient.casNumber || ingredient.name.toLowerCase();
+    mergedMap.set(key, { ...ingredient });
+  });
+
+  // Merge COSING ingredients
+  cosingIngredients.forEach(cosingIng => {
+    const key = cosingIng.casNumber || cosingIng.name.toLowerCase();
+    const existing = mergedMap.get(key);
+
+    if (existing) {
+      // Merge with existing FDA ingredient
+      mergedMap.set(key, {
+        ...existing,
+        sources: [...existing.sources, ...cosingIng.sources],
+        functions: [...existing.functions, ...cosingIng.functions],
+        // Prefer COSING description if FDA doesn't have one or if COSING is more descriptive
+        description: cosingIng.description.length > existing.description.length
+          ? cosingIng.description
+          : existing.description,
+        restriction: cosingIng.restriction || existing.restriction,
+        ecNumber: cosingIng.ecNumber || existing.ecNumber
+      });
+    } else {
+      // Add new COSING-only ingredient
+      mergedMap.set(key, cosingIng);
+    }
+  });
+
+  // Convert map to array and sort alphabetically
+  return Array.from(mergedMap.values())
+    .sort((a, b) => a.name.localeCompare(b.name));
 };

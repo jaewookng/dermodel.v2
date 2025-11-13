@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  processIngredients, 
+import {
+  processIngredients,
+  processCosingIngredient,
+  mergeIngredients,
   ProcessedIngredient,
-  SupabaseIngredient 
+  SupabaseIngredient,
+  COSINGIngredient
 } from '@/lib/ingredientProcessor';
 
 interface FilterParams {
@@ -23,91 +26,91 @@ interface IngredientsResponse {
 
 export const useIngredients = (filters: FilterParams = {}) => {
   const { page = 1, limit = 50, search, category, hasData, sortBy = 'name' } = filters;
-  
+
   return useQuery({
     queryKey: ['ingredients', { page, limit, search, category, hasData, sortBy }],
     queryFn: async (): Promise<IngredientsResponse> => {
-      console.log('🔍 Fetching ingredients with filters:', filters);
-      
+      console.log('🔍 Fetching ingredients from USFDA and COSING with filters:', filters);
+
       try {
-        let query = supabase.from('ingredients').select('*', { count: 'exact' });
-        
-        // Apply search filter with partial match and case-insensitive searching
-        if (search && search.trim()) {
-          const searchTerm = search.trim();
-          // Escape special characters that might interfere with the query
-          // Use % wildcards for PostgreSQL ilike (case-insensitive partial matching)
-          // Supabase will handle URL encoding automatically
-          const escapedTerm = searchTerm.replace(/%/g, '\\%').replace(/_/g, '\\_');
-          const searchPattern = `%${escapedTerm}%`;
-          
-          // Build OR conditions for case-insensitive partial matching
-          // Search in INGREDIENT_NAME and DESCRIPTION fields
-          const searchConditions = [
-            `INGREDIENT_NAME.ilike.${searchPattern}`,
-            `DESCRIPTION.ilike.${searchPattern}`
-          ];
-          
-          // If search term is purely numeric, also search CAS_NUMBER
-          // Cast CAS_NUMBER to text for partial matching support
-          // Note: PostgREST may support this syntax; if not, search will still work
-          // for INGREDIENT_NAME and DESCRIPTION fields
-          if (/^\d+$/.test(searchTerm)) {
-            searchConditions.push(`CAS_NUMBER::text.ilike.${searchPattern}`);
-          }
-          
-          // Apply OR filter - matches if ANY condition is true
-          // This enables searching across multiple columns simultaneously
-          query = query.or(searchConditions.join(','));
+        // Fetch both USFDA and COSING ingredients in parallel (no limits - fetch all)
+        const [fdaResult, cosingResult] = await Promise.all([
+          supabase.from('ingredients').select('*'),
+          supabase.from('COSING_ingredients').select('*')
+        ]);
+
+        if (fdaResult.error) {
+          console.error('❌ FDA Supabase error:', fdaResult.error);
+          throw fdaResult.error;
         }
-        
+
+        if (cosingResult.error) {
+          console.error('❌ COSING Supabase error:', cosingResult.error);
+          throw cosingResult.error;
+        }
+
+        console.log('✅ Raw FDA ingredients:', fdaResult.data?.length || 0);
+        console.log('✅ Raw COSING ingredients:', cosingResult.data?.length || 0);
+
+        // Process both datasets
+        const processedFDA = processIngredients(fdaResult.data as SupabaseIngredient[]);
+        const processedCOSING = (cosingResult.data as COSINGIngredient[]).map(processCosingIngredient);
+
+        // Merge ingredients by CAS number (already sorted alphabetically)
+        let merged = mergeIngredients(processedFDA, processedCOSING);
+
+        console.log('🔄 Merged ingredients:', merged.length);
+
+        // Apply search filter
+        if (search && search.trim()) {
+          const searchTerm = search.trim().toLowerCase();
+          merged = merged.filter(ingredient =>
+            ingredient.name.toLowerCase().includes(searchTerm) ||
+            ingredient.description.toLowerCase().includes(searchTerm) ||
+            ingredient.casNumber?.toLowerCase().includes(searchTerm) ||
+            ingredient.functions.some(fn => fn.toLowerCase().includes(searchTerm))
+          );
+        }
+
+        // Apply category filter
+        if (category && category !== 'all') {
+          merged = merged.filter(ingredient => ingredient.category === category);
+        }
+
         // Apply data availability filters
         if (hasData === 'with-cas') {
-          query = query.not('CAS_NUMBER', 'is', null);
+          merged = merged.filter(ing => ing.casNumber);
         } else if (hasData === 'with-potency') {
-          query = query.not('POTENCY_AMOUNT', 'is', null);
+          merged = merged.filter(ing => ing.potency);
         } else if (hasData === 'with-exposure') {
-          query = query.not('MAXIMUM_DAILY_EXPOSURE', 'is', null);
+          merged = merged.filter(ing => ing.maxExposure);
         }
-        
-        // Apply sorting
-        if (sortBy === 'name' || sortBy === 'name-desc') {
-          query = query.order('INGREDIENT_NAME', { ascending: sortBy === 'name' });
+
+        // Sorting (already alphabetical by default from mergeIngredients)
+        if (sortBy === 'name-desc') {
+          merged = merged.sort((a, b) => b.name.localeCompare(a.name));
         } else if (sortBy === 'cas') {
-          query = query.order('CAS_NUMBER', { ascending: true, nullsLast: true });
+          merged = merged.sort((a, b) => {
+            if (!a.casNumber) return 1;
+            if (!b.casNumber) return -1;
+            return a.casNumber.localeCompare(b.casNumber);
+          });
         }
-        
+        // sortBy === 'name' is already applied
+
+        const totalCount = merged.length;
+
         // Apply pagination
         const from = (page - 1) * limit;
-        const to = from + limit - 1;
-        query = query.range(from, to);        
-        const { data, error, count } = await query;
-        
-        if (error) {
-          console.error('❌ Supabase error:', error);
-          throw error;
-        }
-        
-        console.log('✅ Raw ingredients data received:', data?.length || 0, 'items, total:', count);
-        
-        if (!data) {
-          return { data: [], totalCount: 0, hasMore: false };
-        }
-        
-        // Process ingredients using centralized processor
-        let processed = processIngredients(data as SupabaseIngredient[]);
-        
-        // Apply category filter post-processing
-        if (category && category !== 'all') {
-          processed = processed.filter(ingredient => ingredient.category === category);
-        }
-        
-        console.log('🔄 Processed ingredients:', processed.length, 'items');
-        
+        const to = from + limit;
+        const paginatedData = merged.slice(from, to);
+
+        console.log('📄 Paginated ingredients:', paginatedData.length, 'items, total:', totalCount);
+
         return {
-          data: processed,
-          totalCount: count || 0,
-          hasMore: count ? (page * limit) < count : false
+          data: paginatedData,
+          totalCount,
+          hasMore: to < totalCount
         };
       } catch (error) {
         console.error('💥 Error in ingredient fetch:', error);
@@ -120,17 +123,27 @@ export const useIngredients = (filters: FilterParams = {}) => {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
-// Hook for getting total count
+// Hook for getting total count of merged ingredients
 export const useIngredientsCount = () => {
   return useQuery({
     queryKey: ['ingredients-count'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('ingredients')
-        .select('*', { count: 'exact', head: true });
-      
-      if (error) throw error;
-      return count || 0;
+      // Fetch both tables and merge to get accurate count
+      const [fdaResult, cosingResult] = await Promise.all([
+        supabase.from('ingredients').select('*', { count: 'exact', head: true }),
+        supabase.from('COSING_ingredients').select('*', { count: 'exact', head: true })
+      ]);
+
+      if (fdaResult.error) throw fdaResult.error;
+      if (cosingResult.error) throw cosingResult.error;
+
+      // For a rough estimate, we can add both counts
+      // (Note: This may overcount if there are duplicates, but it's close enough for display)
+      const fdaCount = fdaResult.count || 0;
+      const cosingCount = cosingResult.count || 0;
+
+      // Return combined count as approximation
+      return fdaCount + cosingCount;
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes

@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      COSING_ingredients: {
+        Row: {
+          "COSING Ref No": number
+          "INCI name": string | null
+          "INN name": string | null
+          "Ph. Eur. Name": string | null
+          "CAS No": string | null
+          "EC No": string | null
+          "Chem/IUPAC Name / Description": string | null
+          Restriction: string | null
+          Function: string | null
+          "Update Date": string | null
+        }
+        Insert: {
+          "COSING Ref No": number
+          "INCI name"?: string | null
+          "INN name"?: string | null
+          "Ph. Eur. Name"?: string | null
+          "CAS No"?: string | null
+          "EC No"?: string | null
+          "Chem/IUPAC Name / Description"?: string | null
+          Restriction?: string | null
+          Function?: string | null
+          "Update Date"?: string | null
+        }
+        Update: {
+          "COSING Ref No"?: number
+          "INCI name"?: string | null
+          "INN name"?: string | null
+          "Ph. Eur. Name"?: string | null
+          "CAS No"?: string | null
+          "EC No"?: string | null
+          "Chem/IUPAC Name / Description"?: string | null
+          Restriction?: string | null
+          Function?: string | null
+          "Update Date"?: string | null
+        }
+        Relationships: []
+      }
       ingredient_references: {
         Row: {
           id: string

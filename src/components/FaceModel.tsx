@@ -67,7 +67,7 @@ export const FaceModel = () => {
 
   // ═══════════════════════════════════════════════════════════════════════
   // CORE: Spline Load Event Handler
-  // Sets up raycasting for facial zone detection and disables rotation
+  // Sets up raycasting for facial zone detection
   // ═══════════════════════════════════════════════════════════════════════
   const onSplineLoad = (splineApp: Application) => {
     setIsLoading(false);
@@ -284,9 +284,6 @@ export const FaceModel = () => {
           if (faceArea) {
             setHoveredArea(faceArea);
             document.body.style.cursor = 'pointer';
-          } else {
-            setHoveredArea(null);
-            document.body.style.cursor = 'auto';
           }
         } catch (error) {
           console.warn('Error in hover raycasting:', error);

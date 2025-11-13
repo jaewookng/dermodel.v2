@@ -407,6 +407,113 @@ npm run preview
 
 ---
 
+## 🔗 FEATURE: Smart Merge of USFDA and COSING EU Ingredients (2025-11-12)
+
+**Feature**: Intelligent merging of USFDA and EU COSING cosmetic ingredient databases with unified display
+
+**Implementation Strategy**: Smart merge by CAS number with combined function labels and data source badges
+
+### Changes Made:
+
+#### 1. **Updated Type Interfaces** (`src/lib/ingredientProcessor.ts`)
+- Added `COSINGIngredient` interface for EU data structure
+- Extended `ProcessedIngredient` interface with new fields:
+  - `sources: string[]` - Array of data source badges ("USFDA" | "EU COSING")
+  - `functions: string[]` - Combined ingredient functions from both databases
+  - `restriction?: string` - EU regulatory restrictions
+  - `ecNumber?: string` - European Commission number
+
+#### 2. **Merge Utilities** (`src/lib/ingredientProcessor.ts`)
+- **`parseCosingFunctions()`**: Parses comma-separated COSING function strings into clean array
+- **`processCosingIngredient()`**: Processes COSING raw data into standardized format
+- **`mergeIngredients()`**: Smart merge algorithm that:
+  - Matches ingredients by CAS number (primary) or name (fallback)
+  - Combines functions from both sources without differentiation
+  - Merges source badges for duplicate ingredients
+  - Sorts alphabetically by ingredient name
+  - Prefers more descriptive descriptions
+
+#### 3. **Data Fetching** (`src/hooks/useIngredients.ts`)
+- Fetches USFDA and COSING ingredients **in parallel** for optimal performance
+- Processes both datasets independently
+- Merges using smart merge algorithm
+- Applies filters (search, category, data availability) to merged results
+- Implements client-side pagination for merged data
+- Updated `useIngredientsCount()` to return combined count estimate
+
+#### 4. **UI Display** (`src/components/IngredientTable.tsx`)
+- **New "Source" column**: Shows FDA and/or EU badges for each ingredient
+  - Blue badge for USFDA: `[FDA]`
+  - Yellow badge for EU COSING: `[EU]`
+- **New "Functions" column**: Displays up to 3 function tags inline
+  - Shows "+N" badge if more than 3 functions exist
+  - All functions displayed in expanded row view
+- **Expanded row enhancements**:
+  - "All Functions" section with complete function list as badges
+  - EU Restriction warning badge (orange) if restrictions exist
+  - EC number display alongside CAS number
+- **Color scheme**:
+  - FDA badges: `bg-blue-50 text-blue-600`
+  - EU badges: `bg-yellow-50 text-yellow-700`
+  - Function badges: `bg-gray-50 text-gray-600`
+  - Restriction warnings: `bg-orange-50 text-orange-700`
+
+### Key Features:
+
+1. **Unified View**: Single alphabetically-sorted table showing ingredients from both databases
+2. **Smart Deduplication**: Ingredients in both databases show as single row with multiple source badges
+3. **Combined Functions**: All functional categories merged without distinguishing source
+4. **Regulatory Transparency**: EU restrictions clearly highlighted with warning badges
+5. **Search Enhancement**: Can search by ingredient name, description, CAS number, or function
+6. **Performance**: Parallel fetching of both databases for optimal load time
+
+### Example Display:
+
+```
+Name              | Source    | Category    | Functions
+------------------|-----------|-------------|---------------------------
+Glycerin          | [FDA][EU] | Hydrating   | Emollient · Humectant · ...
+Hyaluronic Acid   | [FDA][EU] | Hydrating   | Humectant · Skin Cond. · ...
+Retinol           | [FDA]     | Anti-aging  | -
+```
+
+**Files Modified**:
+- `src/integrations/supabase/types.ts` - Added COSING_ingredients types
+- `src/lib/ingredientProcessor.ts` - Added merge logic and COSING processing
+- `src/hooks/useIngredients.ts` - Updated to fetch and merge both databases
+- `src/components/IngredientTable.tsx` - Enhanced UI with source badges and functions
+
+**Status**:
+- ✅ Smart merge by CAS number implemented
+- ✅ Data source badges displayed (FDA/EU)
+- ✅ Combined functions shown as badge pills
+- ✅ EU restrictions highlighted with warnings
+- ✅ Alphabetical sorting maintained
+- ✅ All filters and search working with merged data
+- ✅ TypeScript compilation successful
+- ✅ Dev server running successfully
+
+**Performance Notes**:
+- Parallel fetching reduces load time
+- Client-side merge allows for flexible filtering
+- Pagination applied after merge for optimal UX
+- **No query limits** - fetches all records from both databases (FDA + all 28,712 COSING records)
+
+**Bug Fix (2025-11-12)**:
+- **Issue**: Initial implementation had `.limit(10000)` on queries, missing 18,712+ COSING records
+- **Fix**: Removed all limits to fetch complete datasets
+- **Result**: Now properly displaying all 28,712+ COSING ingredients merged with FDA data
+
+---
+
+## 📚 DATABASE: Added COSING_ingredients Table Types (2025-11-12)
+
+**Change**: Added TypeScript types for the `COSING_ingredients` table (EU cosmetic ingredients database)
+
+**Status**: ✅ **COMPLETED - Fully integrated into UI** (see feature above)
+
+---
+
 ## 📚 DATABASE: Added ingredient_references Table Types (2025-11-09)
 
 **Change**: Added TypeScript types for the `ingredient_references` table in Supabase
@@ -494,3 +601,38 @@ ingredient_references {
 ```
 
 **Result**: Users can now see and access relevant research papers for each ingredient directly in the ingredient table, with clean, subtle presentation that doesn't overwhelm the UI.
+
+---
+
+## ✨ FEATURE: Interactive Glow Effect for 3D Facial Zones (2025-11-11)
+
+**Feature**: Added an interactive blue glow effect that highlights facial zones when hovering over them
+
+**Implementation**:
+
+1. **Glow Effect Management System**:
+   - Created functions to track and manage Three.js material emissive properties
+   - Stores original material states to restore when glow is removed
+   - Applies blue emissive glow (color: `0x4488ff`) with intensity 0.3
+
+2. **Minimal Three.js Impact**:
+   - No new Three.js instances created - works with existing materials
+   - Uses the existing raycasting system without interference
+   - Tracks glowing objects to ensure proper cleanup
+
+3. **Event Integration**:
+   - Integrated into existing `handleMouseMove` for hover detection
+   - Applies glow when hovering over a facial zone
+   - Removes glow when moving to a different zone or leaving the canvas
+   - Added cleanup in `handleMouseLeave` for complete removal
+
+**Technical Details**:
+- **Glow Color**: Blue (`0x4488ff`) - matches the overall UI theme
+- **Glow Intensity**: 0.3 - subtle but noticeable
+- **Performance**: Minimal impact, reuses existing raycasting results
+- **Cleanup**: Properly restores original material properties
+
+**Files Modified**:
+- `src/components/FaceModel.tsx`
+
+**Result**: Facial zones now provide immediate visual feedback with a subtle blue glow effect when users hover over them, improving the interactive experience and making it clearer which zone will be selected on click. The effect is smooth, performant, and doesn't interfere with the existing raycasting or rotation controls.

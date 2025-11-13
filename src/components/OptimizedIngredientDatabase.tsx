@@ -41,9 +41,9 @@ export const OptimizedIngredientDatabase = () => {
   }
 
   return (
-    <div className="h-full flex flex-col p-4">
+    <div className="h-full flex flex-col p-4 pointer-events-auto">
       {/* Compact Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 pointer-events-auto">
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-violet-600" />
           <h2 className="text-base font-semibold text-gray-800">Ingredients</h2>
@@ -56,23 +56,23 @@ export const OptimizedIngredientDatabase = () => {
         </div>
       </div>      
       {/* Compact Filters */}
-      <div className="space-y-2 mb-3">
+      <div className="space-y-2 mb-3 pointer-events-auto">
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
           <Input
             placeholder="Search ingredients..."
             value={filters.search}
             onChange={(e) => updateFilter('search', e.target.value)}
-            className="pl-7 h-8 text-sm"
+            className="pl-7 h-8 text-sm pointer-events-auto"
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 pointer-events-auto">
           <Select value={filters.category} onValueChange={(value) => updateFilter('category', value)}>
-            <SelectTrigger className="h-8 text-sm">
+            <SelectTrigger className="h-8 text-sm pointer-events-auto">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="pointer-events-auto">
               <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="hydrating">Hydrating</SelectItem>
               <SelectItem value="anti-aging">Anti-Aging</SelectItem>
@@ -83,14 +83,14 @@ export const OptimizedIngredientDatabase = () => {
           </Select>
 
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-sm">
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-sm pointer-events-auto">
               Clear
             </Button>
           )}
         </div>
       </div>      
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pointer-events-auto">
         {/* Loading State */}
         {isLoading && (
           <LoadingState 
@@ -116,11 +116,11 @@ export const OptimizedIngredientDatabase = () => {
         {/* Data Table */}
         {!isLoading && !error && ingredients.length > 0 && (
           <>
-            <div className="bg-white rounded border overflow-hidden">
+            <div className="bg-white rounded border overflow-hidden pointer-events-auto">
               <IngredientTable ingredients={ingredients} />
             </div>
             
-            <div className="mt-2">
+            <div className="mt-2 pointer-events-auto">
               <SimplePagination
                 currentPage={pagination.currentPage}
                 totalPages={totalPages}
@@ -135,15 +135,17 @@ export const OptimizedIngredientDatabase = () => {
         
         {/* No Results */}
         {!isLoading && !error && ingredients.length === 0 && (
-          <EmptyState 
-            title="No ingredients found"
-            message="Try adjusting your filters or search terms"
-            icon="database"
-            action={hasActiveFilters ? {
-              label: "Clear filters",
-              onClick: clearFilters
-            } : undefined}
-          />
+          <div className="pointer-events-auto">
+            <EmptyState 
+              title="No ingredients found"
+              message="Try adjusting your filters or search terms"
+              icon="database"
+              action={hasActiveFilters ? {
+                label: "Clear filters",
+                onClick: clearFilters
+              } : undefined}
+            />
+          </div>
         )}
       </div>
     </div>
