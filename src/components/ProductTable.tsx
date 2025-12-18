@@ -2,17 +2,17 @@ import { useState, Fragment, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { IngredientProducts } from './IngredientProducts';
-import { IngredientFavoriteButton } from './IngredientFavoriteButton';
-import { ProcessedIngredient } from '@/lib/ingredientProcessor';
+import { Product } from '@/hooks/useIngredients';
+import { ProductIngredients } from './ProductIngredients';
+import { ProductFavoriteButton } from './ProductFavoriteButton';
 
-interface IngredientTableProps {
-  ingredients: ProcessedIngredient[];
-  onProductClick?: (productId: string, productName: string) => void;
+interface ProductTableProps {
+  products: Product[];
+  onIngredientClick?: (ingredientId: string, ingredientName: string) => void;
   expandedId?: string | null;
 }
 
-export const IngredientTable = ({ ingredients, onProductClick, expandedId }: IngredientTableProps) => {
+export const ProductTable = ({ products, onIngredientClick, expandedId }: ProductTableProps) => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   // Update expanded rows when expandedId changes from parent
@@ -32,7 +32,6 @@ export const IngredientTable = ({ ingredients, onProductClick, expandedId }: Ing
     setExpandedRows(newExpanded);
   };
 
-
   return (
     <div className="overflow-hidden pointer-events-auto">
       <Table className="pointer-events-auto">
@@ -40,22 +39,22 @@ export const IngredientTable = ({ ingredients, onProductClick, expandedId }: Ing
           <TableRow className="bg-gray-50 pointer-events-auto">
             <TableHead className="w-10 p-2"></TableHead>
             <TableHead className="p-2 text-xs font-medium text-gray-700">Name</TableHead>
-            <TableHead className="p-2 text-xs font-medium text-gray-700">Found in..</TableHead>
+            <TableHead className="p-2 text-xs font-medium text-gray-700">Ingredients</TableHead>
             <TableHead className="w-10 p-2"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {ingredients.map((ingredient) => {
-            const isExpanded = expandedRows.has(ingredient.id);
+          {products.map((product) => {
+            const isExpanded = expandedRows.has(product.product_id);
             return (
-              <Fragment key={ingredient.id}>
+              <Fragment key={product.product_id}>
                 <TableRow className="hover:bg-gray-50 pointer-events-auto">
                   <TableCell className="p-2 w-10 pointer-events-auto">
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-5 w-5 p-0 pointer-events-auto"
-                      onClick={() => toggleRow(ingredient.id)}
+                      onClick={() => toggleRow(product.product_id)}
                     >
                       {isExpanded ? (
                         <ChevronDown className="h-3 w-3" />
@@ -64,21 +63,21 @@ export const IngredientTable = ({ ingredients, onProductClick, expandedId }: Ing
                       )}
                     </Button>
                   </TableCell>
-                  <TableCell className="p-2 font-medium text-xs pointer-events-auto">{ingredient.name}</TableCell>
+                  <TableCell className="p-2 font-medium text-xs pointer-events-auto">{product.product_name}</TableCell>
                   <TableCell className="p-2 pointer-events-auto">
                     <span className="text-xs text-gray-600">
-                      {ingredient.productCount || 0} products
+                      {product.ingredient_count || 0} ingredients
                     </span>
                   </TableCell>
                   <TableCell className="p-2 pointer-events-auto text-right">
-                    <IngredientFavoriteButton ingredientName={ingredient.name} />
+                    <ProductFavoriteButton productId={product.product_id} />
                   </TableCell>
                 </TableRow>
                 {isExpanded && (
                   <TableRow className="pointer-events-auto">
                     <TableCell colSpan={4} className="p-3 bg-gray-50 pointer-events-auto">
                       <div className="space-y-2 text-xs pointer-events-auto">
-                        <IngredientProducts ingredientId={ingredient.id} onProductClick={onProductClick} />
+                        <ProductIngredients productId={product.product_id} onIngredientClick={onIngredientClick} />
                       </div>
                     </TableCell>
                   </TableRow>

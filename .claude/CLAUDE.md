@@ -18,621 +18,289 @@ This document outlines the steps to remove "Lovable" branding from your project 
 
 ---
 
-## ✅ COMPLETED: Project Independence (Erasing Lovable's Fingerprints)
+## 🔄 MIGRATION: Switch to sss_ Tables Only (2025-11-25)
 
-### ✅ `README.md`
-**Status**: COMPLETED
-- Rewrote introduction from "Welcome to your Lovable project" to "Welcome to Dermodel v2: Your Personal Skincare Analysis Platform"
-- Removed all Lovable references and URLs
-- Updated development and deployment instructions to use standard tools
-- Changed project description to focus on skincare analysis functionality
+**Status**: ✅ **COMPLETED**
 
-### ✅ `index.html`
-**Status**: COMPLETED
-- Updated title from "skin-glow-whisperer" to "Dermodel v2 | Skincare Analysis"
-- Removed "Lovable Generated Project" from meta descriptions
-- Updated Open Graph and Twitter meta tags to reference Dermodel v2
-- Changed author from "Lovable" to "Dermodel Team"
-- Updated social media references to use @dermodel instead of @lovable_dev
-- **Note**: Custom OG/Twitter images still reference placeholder paths (/dermodel-og-image.png, /dermodel-twitter-image.png) - these will need to be created and added to public folder
+### Overview
+Migrated all ingredient and product data to exclusively use Supabase tables starting with `sss_`. Removed all references to old tables (`ingredients_master`, `ingredients_cosing`, `ingredients_usfda`, `ingredient_references_master`).
 
-### ✅ `vite.config.ts`
-**Status**: COMPLETED
-- Removed `import { componentTagger } from "lovable-tagger"`
-- Removed `componentTagger()` from plugins array
-- Clean Vite configuration with no Lovable dependencies
+### What Was Changed
 
----
+#### 1. **useIngredients.ts** - Complete Rewrite
+- Now fetches from `sss_ingredients` table instead of `ingredients_master` with joins
+- Simplified data structure (no more USFDA/COSING specific fields)
+- New fields: `productCount`, `avgPosition`
+- Removed: CAS number, potency, max exposure, route, functions, restrictions
 
-## ✅ COMPLETED: Enhanced 3D Model UI
+#### 2. **ingredientProcessor.ts** - Simplified
+- Removed all legacy types (`MasterIngredient`, `USFDAData`, `COSINGData`, `JoinedIngredient`)
+- Removed all processing functions (no longer needed)
+- Kept only `ProcessedIngredient` interface with new fields
 
-### ✅ 3D Model Camera Positioning
-**Status**: COMPLETED - Camera positions recalibrated for better facial zone viewing
-- Updated `cameraPositions` in `src/components/FaceModel.tsx` with improved coordinates:
-  - **Forehead**: position: [0, 1.2, 4], target: [0, 0.8, 0]
-  - **Eyes**: position: [0, 0.3, 4], target: [0, 0.2, 0]  
-  - **Cheeks**: position: [1.8, 0.1, 3.2], target: [0.8, 0, 0]
-  - **Nose**: position: [0, 0, 4.2], target: [0, -0.1, 0]
-  - **Mouth**: position: [0, -0.4, 4], target: [0, -0.3, 0]
-  - **Chin**: position: [0, -1, 4], target: [0, -0.8, 0]
-- These positions provide front-facing views instead of the previous "back of head" perspective
-- Smooth camera animations are maintained with existing lerpVectors implementation
+#### 3. **types.ts** - Removed Old Tables
+Removed types for:
+- `ingredients_master`
+- `ingredients_cosing`
+- `ingredients_usfda`
+- `ingredient_references_master`
 
-### ✅ Model Positioning
-**Status**: ALREADY IMPLEMENTED - Model correctly positioned on left side of screen
-- FaceModel component uses appropriate CSS positioning
-- Layout properly accommodates ingredient database on the right
+Kept:
+- `profiles`, `ingredient_favorites`, `ingredient_history` (user features)
+- `sss_ingredients`, `sss_products`, `sss_product_ingredients_join` (product data)
 
----
+#### 4. **IngredientTable.tsx** - Updated UI
+- Removed FDA/EU source badges
+- Removed functions display
+- Added product count and average position columns
+- Removed IngredientPapers component
 
-## 🚀 NEXT STEPS & RECOMMENDATIONS
+#### 5. **IngredientFilters.tsx** - New Filter Options
+- Removed: "With CAS Number", "With Potency Data", "With Exposure Limits"
+- Added: "In Products" filter
+- New sort: "Product Count"
 
-### 1. Assets & Branding (HIGH PRIORITY)
-- **Create Custom Images**: Design and add custom Open Graph and Twitter card images
-  - Add `/public/dermodel-og-image.png` (1200x630px recommended)
-  - Add `/public/dermodel-twitter-image.png` (1200x600px recommended)
-- **Custom Favicon**: Replace default favicon with Dermodel-specific branding
-- **Brand Colors**: Consider updating the color scheme throughout the app to match Dermodel branding
+#### 6. **Removed Files**
+- `src/hooks/useIngredientPapers.ts` - used non-sss table
+- `src/components/IngredientPapers.tsx` - used non-sss table
 
-### 2. Fine-tune 3D Model Experience (MEDIUM PRIORITY)
-- **Test Camera Positions**: Run the development server and test each facial zone click to ensure optimal viewing angles
-- **Adjust if Needed**: The new camera positions are improved but may need minor tweaks based on actual 3D model proportions
-- **Animation Timing**: Consider adjusting animation duration (currently 1000ms) for better user experience
+### Current Data Model
 
-### 3. Enhanced Functionality (MEDIUM PRIORITY)
-- **Ingredient Search Integration**: The TODO comment in FaceModel.tsx line 417 suggests linking ingredient clicks to the search functionality
-- **Responsive Design**: Test and improve mobile/tablet experience for 3D model interaction
-- **Performance Optimization**: Consider adding more efficient mesh interaction or LOD (Level of Detail) for the 3D model
+```
+sss_ingredients
+├── ingredient_id (PK)
+├── ingredient_name
+├── product_count
+└── avg_position
 
-### 4. Dependencies Cleanup (LOW PRIORITY)
-- **Package.json Review**: Check if `lovable-tagger` can be removed from dependencies
-- **Unused Dependencies**: Run dependency analysis to remove any unused packages
+sss_products
+├── product_id (PK)
+├── product_name
+└── ingredient_count
 
-### 5. Testing & Quality Assurance (LOW PRIORITY)
-- **Cross-browser Testing**: Ensure 3D model works across different browsers
-- **WebGL Fallback**: Test the fallback view for devices without WebGL support
-- **Error Handling**: Add more robust error handling for GLB model loading
-
----
-
-## Development Commands
-
-```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+sss_product_ingredients_join
+├── product_id (FK)
+├── ingredient_id (FK)
+└── position
 ```
 
----
-
-**Status**: Project is now fully independent from Lovable with improved 3D model camera positioning. Ready for further development and customization.
-
----
-
-## 🔧 RECENT TROUBLESHOOTING (2024-06-29)
-
-**Issue**: Changes not appearing in browser after running `npm run dev`
-
-**Root Cause**: Browser caching + Vite cache + leftover `lovable-tagger` dependency
-
-**Resolution Steps Taken**:
-1. Removed `lovable-tagger` dependency completely with `npm uninstall lovable-tagger`
-2. Cleared all Vite caches: `rm -rf node_modules/.vite .vite dist`
-3. Killed all existing Vite/Node processes: `pkill -f "vite" && pkill -f "node"`
-4. Restarted dev server: `npm run dev`
-
-**Verification**: Server is now correctly serving updated content:
-- Title shows "Dermodel v2 | Skincare Analysis" 
-- Meta descriptions reference "Dermodel v2"
-- All Lovable references removed
-
-**For Users**: If changes still don't appear in browser:
-1. **Hard refresh**: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows)
-2. **Clear browser cache** or open in incognito/private mode
-3. **Check network tab** in DevTools to ensure files are reloading
-4. **Verify server URL**: Should be http://localhost:8080/
-
-**Current Status**: ✅ All changes successfully implemented and server verified working
+### Verified
+✅ TypeScript compilation successful
+✅ Production build successful
+✅ All old table references removed from src/
 
 ---
 
-## 🔧 LAYOUT FIX (2024-06-29)
+## 🛍️ FEATURE: Product-Ingredient Integration (2025-11-25)
 
-**Issue**: 3D Face Model appearing center screen instead of on the left side
+**Status**: ✅ **FULLY IMPLEMENTED**
 
-**Root Cause**: 3D model was positioned at origin (0,0,0) in the center of the boundless 3D scene
+### Overview
+Integrated three new Supabase tables (`sss_ingredients`, `sss_products`, `sss_product_ingredients_join`) to display products that contain each ingredient in the ingredient table.
 
-**Better Solution**: Keep the boundless container but position the 3D model itself to the left within the 3D space
+### What Was Implemented
 
-**Files Modified**: `src/components/FaceModel.tsx`
+#### 1. **Database Types** (`src/integrations/supabase/types.ts`)
+Added TypeScript types for three new tables:
+- `sss_ingredients`: Ingredient master data (ingredient_id, ingredient_name, product_count, avg_position)
+- `sss_products`: Product data (product_id, product_name, ingredient_count)
+- `sss_product_ingredients_join`: Junction table linking products to ingredients (product_id, ingredient_id, position)
 
-**Final Changes Applied**:
-1. **Model Position**: Moved 3D model group to `position={[-7, 0, 0]}` (far left)
-2. **Camera Position**: Kept camera at original `position: [0, 0, 5]` (looking at center)
-3. **Orbit Controls Target**: Kept at original `target={[0, 0, 0]}` (center focus)
-4. **Default Animation Position**: Kept at original `(0, 0, 5)` and target `(0, 0, 0)`
-5. **Camera Positions**: Adjusted all facial zone camera positions to work with model at x=-7
+#### 2. **Data Fetching Hook** (`src/hooks/useIngredientProducts.ts`)
+- `useIngredientProducts()`: Fetches all products containing a specific ingredient
+- Joins `sss_product_ingredients_join` with `sss_products` to get full product info
+- Returns products sorted by position in ingredient list
+- Includes position (order in product ingredient list) and ingredient_count for context
 
-**Result**: 3D model appears on the far left side of the screen while the camera remains focused on the center, creating the visual effect of the model being positioned to the left within a boundless 3D space. Users can still orbit around the center point while the model is visually positioned on the left side of the viewport.
+#### 3. **UI Component** (`src/components/IngredientProducts.tsx`)
+- Displays list of products containing an ingredient
+- Shows product name, ingredient count, and position in ingredient list
+- Styled with blue left border and hierarchical layout
+- Includes loading state while fetching data
+- Returns null gracefully if no products found
 
----
+#### 4. **Integration into Ingredient Table** (`src/components/IngredientTable.tsx`)
+- Added `IngredientProducts` component to expanded ingredient rows
+- Shows product count and full product list in expandable row
 
-## 🔧 CAMERA & PERSPECTIVE REFINEMENTS (2024-06-29)
+### Features
 
-### Initial Zoom Level Adjustment
-**Change**: Updated initial camera position from `[0, 0, 5]` to `[0, 0, 8]`
-**Reason**: Start with a more zoomed-out view for better initial perspective
-**Files**: `src/components/FaceModel.tsx:357` and default return position
+✅ **Product Discovery** - See which products contain an ingredient
+✅ **Position Tracking** - Shows where ingredient appears in product's ingredient list
+✅ **Ingredient Count** - See how many total ingredients are in each product
+✅ **Loading States** - Graceful loading indicator while fetching
+✅ **Type Safe** - Full TypeScript support with proper types
+✅ **Responsive Layout** - Clean hierarchical display with visual distinction
 
-### Facial Zone Camera Behavior Optimization
-**Multiple iterations to perfect the facial zone snap behavior:**
+### Architecture
 
-1. **Distance Adjustment**: Moved facial zone cameras from z=3 to z=5.5 to prevent over-zooming
-2. **Vertical Position Tuning**: Shifted all camera y positions down by -1 for better viewing angles
-3. **Forehead Fine-tuning**: Additional -0.4 adjustment for forehead camera (y=0.2 → y=-0.2)
-4. **Final Approach - Fixed Camera Position**: 
+```
+IngredientTable (main component)
+├── IngredientRow (for each ingredient)
+│   └── Expanded Detail View
+│       └── IngredientProducts (products containing ingredient)
+│           └── useIngredientProducts hook
+│               └── Supabase join query
 
-**Current Implementation**:
-- **All facial zone cameras fixed at**: `position: [0, 0, 8]` (same as default)
-- **Only targets change**: Camera rotates to look at facial zones without moving position
-- **Model stays left**: Model remains in left field during all interactions
-- **Smooth orientation**: Natural rotation effect while maintaining spatial consistency
+Database:
+├── sss_ingredients (master ingredient data)
+├── sss_products (product data)
+└── sss_product_ingredients_join (linking table)
+```
 
-**Facial Zone Targets**:
-- Forehead: `[-2, 0.8, 0]`
-- Eyes: `[-2, 0.2, 0]` 
-- Cheeks: `[-1.2, 0, 0]`
-- Nose: `[-2, -0.1, 0]`
-- Mouth: `[-2, -0.3, 0]`
-- Chin: `[-2, -0.8, 0]`
+### Query Flow
 
-**Result**: Camera maintains fixed position and distance, only rotating to focus on facial zones. This keeps the model in left field while providing clear views of each facial area without disorienting position changes.
+1. User clicks expand on ingredient row
+2. `IngredientProducts` component renders with ingredient.id
+3. `useIngredientProducts` hook triggers query to Supabase
+4. Query joins `sss_product_ingredients_join` + `sss_products` by ingredient_id
+5. Results sorted by position (order in ingredient list)
+6. Products displayed in expandable row with full details
 
----
+### Verified
 
-## 🔧 ROTATION CONTROL DISABLED (2025-11-09)
+✅ TypeScript compilation successful (npx tsc --noEmit)
+✅ Production build successful (npm run build)
+✅ All types properly defined
+✅ Hook follows existing React Query patterns
 
-**Change**: Disabled click-and-drag rotation of the 3D model
+### Next Steps
 
-**Reason**: Improve user experience by preventing unintended model rotation during interaction with facial zones
-
-**Files Modified**: `src/components/FaceModel.tsx`
-
-**Implementation**:
-1. **Simplified rotation disable logic** (lines 72-127):
-   - Reduced complex rotation disabling code to a clean, maintainable implementation
-   - Disabled `enableRotate` and `enablePan` on Spline controls
-   - Applied rotation lock to camera controls via `getAllCameras()` API
-   - Enforcement interval continuously monitors and re-disables rotation every 500ms
-
-2. **CSS-level protection** (lines 184-187):
-   - Set `touchAction: 'none'` to prevent touch-based dragging
-   - Added `WebkitTouchCallout: 'none'` for iOS Safari
-   - Maintained `userSelect: 'none'` to prevent text selection
-
-**Result**: Users can click on facial zones to view information, but cannot rotate the model by clicking and dragging. The model maintains its left-side position and users interact only through zone clicking.
-
----
-
-## 🐛 EVENT HANDLING FIX (2025-11-09)
-
-**Issue**: Clicking on facial zones resulted in "object not in map: undefined" error. Events were hitting the canvas element instead of Spline objects.
-
-**Root Cause**: React event handlers (`onMouseDown`, `onMouseOver`, `onMouseOut`) on the Spline component only receive events from the canvas element, not from individual Spline objects within the scene.
-
-**Solution**: Switched to Spline's internal event system
-
-**Files Modified**: `src/components/FaceModel.tsx`
-
-**Implementation**:
-1. **Direct event listeners on Spline objects** (lines 120-148):
-   - Used `splineObject.addEventListener()` for each facial zone
-   - Added `mouseDown` event for click detection
-   - Added `mouseHover` event for cursor and hover state
-   - Added `mouseExit` event for cleanup
-
-2. **Removed React event handlers**:
-   - Removed `onMouseDown`, `onMouseOver`, `onMouseOut` props from Spline component
-   - Removed unused React event handler functions
-
-**Result**: Facial zone clicks now work correctly. Each zone properly detects clicks, shows hover effects, and displays zone information cards.
+- Test products display in development server (`npm run dev`)
+- Verify Supabase queries return expected data
+- Confirm join relationships work correctly
+- Monitor performance with large product lists
 
 ---
 
-## 🎨 CODE REFACTORING: onSplineLoad Elegance (2025-11-09)
+## 🔐 FEATURE: User Authentication & Profiles (2025-11-18)
 
-**Change**: Refactored the core `onSplineLoad` function for improved readability and maintainability
+**Status**: ✅ **FULLY IMPLEMENTED - Ready for Supabase Setup**
 
-**Motivation**: The function grew to ~350 lines handling multiple responsibilities. User requested consolidation to make it more elegant while preserving all working functionality.
+### Overview
+Implemented complete OAuth authentication system with Google and GitHub sign-in, user profiles, and ingredient preferences tracking.
 
-**Files Modified**: `src/components/FaceModel.tsx`
+### What Was Implemented
 
-**Improvements**:
+#### 1. **Database Schema** (`supabase/migrations/20251118_create_user_profiles.sql`)
+- `profiles` table: User account information (email, name, avatar, skin type, concerns)
+- `ingredient_favorites` table: Track user's favorite ingredients with personal notes
+- `ingredient_history` table: Track viewed/searched ingredients for personalization
+- Auto-creates user profiles on signup via database triggers
+- Row-level security (RLS) policies for data privacy
 
-1. **Clear Section Organization** (5 distinct sections with visual separators):
-   - Section 1: Face Zone Object Mapping
-   - Section 2: Rotation Control Lockdown
-   - Section 3: Raycasting Utilities
-   - Section 4: Mouse Event Handling
-   - Section 5: Event Listener Registration & Cleanup
+#### 2. **TypeScript Types** (`src/integrations/supabase/types.ts`)
+- Added `profiles`, `ingredient_favorites`, and `ingredient_history` table types
+- Full type safety for database operations
 
-2. **Eliminated Code Duplication**:
-   - Extracted `getCamera()` - consolidates camera retrieval logic (used in both hover and click)
-   - Extracted `getInteractableObjects()` - consolidates object collection logic
-   - Extracted `performRaycast()` - single source of truth for raycasting
-   - Extracted `markObjectWithFaceArea()` - eliminates repetitive object marking
+#### 3. **Authentication Context** (`src/contexts/AuthContext.tsx`)
+- `AuthProvider`: Wraps entire app, manages auth state
+- `useAuth()` hook: Access session, user profile, and auth functions
+- Functions: `signInWithGoogle()`, `signInWithGithub()`, `signOut()`, `updateProfile()`
+- Auto-syncs auth state changes across app
 
-3. **Modern JavaScript Patterns**:
-   - Used `Math.hypot()` for cleaner distance calculations
-   - Used array `.forEach()` for progressive delays: `[0, 100, 500].forEach(delay => ...)`
-   - Used optional chaining: `app.getAllCameras?.()`
-   - Used ternary operators for concise return statements
+#### 4. **Hooks for Data Management**
+- `useIngredientFavorites()`: Add/remove favorites, check if ingredient is favorited
+- `useIngredientHistory()`: Track ingredient views, clear history
 
-4. **Enhanced Readability**:
-   - Added visual section dividers with descriptive headers
-   - Grouped related functionality together
-   - Improved variable naming and comments
-   - Reduced nesting depth
+#### 5. **UI Components**
+- `AuthButton`: Sign in button / user menu in header
+- `LoginDialog`: Modal with Google and GitHub OAuth buttons
+- `UserMenu`: Dropdown menu with user info and navigation
+- `IngredientFavoriteButton`: Heart icon to favorite ingredients from table
 
-**Line Count**: Reduced from ~350 lines to ~270 lines while improving clarity
+#### 6. **Pages**
+- `/settings`: User profile management
+  - Edit full name, bio, skin type, skin concerns
+  - Auto-saves changes to database
+  - Sign out option
+- `/favorites`: View saved favorite ingredients
+  - Lists all favorited ingredients
+  - Remove from favorites
+  - Shows date added
 
-**Result**: The function is now significantly more maintainable and easier to understand, with zero behavioral changes. All raycasting, rotation locking, and event handling functionality preserved exactly as before.
+#### 7. **Route Protection**
+- `ProtectedRoute`: Component for auth-required pages
+- Automatically redirects unauthenticated users to home
+- Added to `/settings` and `/favorites` routes
 
----
+#### 8. **UI Components Created**
+- `src/components/ui/textarea.tsx` - For bio/description text areas
+- `src/components/ui/avatar.tsx` - For user profile pictures
+- `src/components/ui/dropdown-menu.tsx` - For user menu
 
-## 🔧 THREE.JS CONFLICT RESOLUTION (2025-11-09)
+### Integration Into Index Page
+- Added `AuthButton` to header (top-right corner)
+- Shows "Sign In" button when logged out
+- Shows user avatar when logged in
+- Clicking menu provides access to Favorites, Settings, and Sign Out
 
-**Issues Identified**:
-1. Multiple instances of Three.js being imported (causing conflicts)
-2. "Cannot set up raycaster: missing renderer or scene" error on load
+### Features
 
-**Root Causes**:
-1. Spline bundles its own Three.js internally, and our separate `import * as THREE from 'three'` created duplicate instances
-2. Spline's renderer and scene might not be fully initialized when `onLoad` fires
+✅ **OAuth with Google & GitHub** - No password management
+✅ **Auto Profile Creation** - Profiles created automatically on signup
+✅ **Ingredient Favorites** - Save/manage favorite ingredients
+✅ **Ingredient History** - Track viewed ingredients (future: personalization)
+✅ **User Settings** - Update profile, skin type, concerns
+✅ **Route Protection** - Auth-only pages redirected if not logged in
+✅ **Responsive Design** - Works on desktop and mobile
+✅ **Type Safe** - Full TypeScript support
 
-**Files Modified**: `src/components/FaceModel.tsx`
+### Next Steps: Setting Up on Supabase
 
-**Solutions Implemented**:
+To activate this authentication system:
 
-1. **Removed separate THREE import**:
-   - Deleted `import * as THREE from 'three'` from imports
-   - Now uses Spline's bundled Three.js instance: `const THREE = app.THREE || window.THREE`
+1. **Run the migration** in Supabase:
+   ```bash
+   # Option 1: Via CLI
+   supabase db push
 
-2. **Added retry mechanism with progressive delays**:
-   ```javascript
-   const setupRaycaster = () => {
-     if (!app.renderer?.domElement || !app.scene) {
-       return false; // Not ready yet
-     }
-     // ... setup code ...
-     return true; // Success
-   };
-
-   // Try immediately, then retry at 100ms and 500ms if needed
-   if (!setupRaycaster()) {
-     setTimeout(() => {
-       if (!setupRaycaster()) {
-         setTimeout(() => setupRaycaster(), 500);
-       }
-     }, 100);
-   }
+   # Option 2: Manual - Copy/paste the migration SQL to Supabase SQL Editor
+   # File: supabase/migrations/20251118_create_user_profiles.sql
    ```
 
-3. **Updated TypeScript types**:
-   - Changed all `THREE.Object3D`, `THREE.Camera`, etc. to `any`
-   - Necessary because THREE is now resolved at runtime, not compile-time
+2. **Enable OAuth Providers**:
+   - Go to Supabase Dashboard → Authentication → Providers
+   - Enable "Google" and "GitHub"
+   - Add OAuth app credentials from Google Cloud Console and GitHub
+   - Set authorized redirect URI: `https://yourdomain.com`
 
-**Result**:
-- ✅ Single Three.js instance (no conflicts)
-- ✅ Robust initialization that waits for scene/renderer to be ready
-- ✅ Clean console logs showing successful setup
-- ✅ All raycasting functionality working correctly
+3. **Test Login Flow**:
+   - Visit home page, click "Sign In" button
+   - Try Google login, then GitHub login
+   - Check that profile is created in database
+   - Verify settings and favorites pages work
 
----
-
-## 🐛 BUG FIXES (2025-11-09)
-
-### Issue 1: Invalid HTML Structure in IngredientTable
-**Warning**: `<tr> cannot appear as a child of <div>` and `<div> cannot appear as a child of <tbody>`
-
-**Root Cause**: The `Collapsible` component from Radix UI wraps content in `<div>` elements, which creates invalid HTML when used inside `<tbody>` (which can only contain `<tr>` elements).
-
-**Solution**:
-- Removed `Collapsible`, `CollapsibleContent`, and `CollapsibleTrigger` components
-- Replaced with conditional rendering using React fragments
-- Used `{isExpanded && <TableRow>...</TableRow>}` for clean expansion logic
-- Maintained all functionality while fixing HTML structure
-
-**Files Modified**: `src/components/IngredientTable.tsx`
-
-### Issue 2: Raycaster Setup Failure
-**Error**: `Failed to set up raycaster after multiple attempts`
-
-**Root Cause**:
-1. Removed THREE.js import but tried to get it from Spline runtime (where it's not exposed)
-2. Retry mechanism was too short (only 3 attempts over ~600ms)
-3. Spline's renderer/scene initialization timing was inconsistent
-
-**Solution**:
-1. **Restored THREE.js import**: `import * as THREE from 'three'`
-   - THREE is needed for raycasting utilities
-   - Version compatibility warning is acceptable (doesn't break functionality)
-
-2. **Extended retry mechanism**:
-   - Increased from 3 attempts to 10 attempts
-   - Progressive delays: 100ms, 200ms, 300ms... up to 1000ms
-   - Total timeout window: ~5.5 seconds
-   - Better debug logging showing which component is missing
-
-3. **Enhanced logging**:
-   - Shows attempt number and delay time
-   - Logs detailed debug info on final failure
-   - Clear success message with attempt count
-
-**Files Modified**: `src/components/FaceModel.tsx`
-
-**Result**:
-- ✅ Valid HTML structure (no browser warnings)
-- ✅ Raycaster successfully initializes
-- ✅ Better debugging information
-- ✅ More resilient to timing variations
-
----
-
-## 📷 CAMERA POSITIONING ADJUSTMENT (2025-11-09)
-
-**Change**: Moved camera closer to the 3D face model for better visibility
-
-**Implementation**:
-- Added `setupCamera()` function in Section 2 of `onSplineLoad`
-- Camera z-position multiplied by 0.6 (moves 40% closer)
-- Preserves x and y positions (maintains centering)
-- Runs immediately on scene load
-
-**Files Modified**: `src/components/FaceModel.tsx`
-
-**Adjustment Formula**: `newZ = currentZ * 0.6`
-- To adjust further, modify the multiplier:
-  - `0.5` = 50% closer (very close)
-  - `0.6` = 40% closer (current setting)
-  - `0.7` = 30% closer
-  - `0.8` = 20% closer
-
-**Result**: Face model appears larger and more prominent in the viewport, improving user engagement with facial zone interactions.
-
----
-
-## 🔗 FEATURE: Smart Merge of USFDA and COSING EU Ingredients (2025-11-12)
-
-**Feature**: Intelligent merging of USFDA and EU COSING cosmetic ingredient databases with unified display
-
-**Implementation Strategy**: Smart merge by CAS number with combined function labels and data source badges
-
-### Changes Made:
-
-#### 1. **Updated Type Interfaces** (`src/lib/ingredientProcessor.ts`)
-- Added `COSINGIngredient` interface for EU data structure
-- Extended `ProcessedIngredient` interface with new fields:
-  - `sources: string[]` - Array of data source badges ("USFDA" | "EU COSING")
-  - `functions: string[]` - Combined ingredient functions from both databases
-  - `restriction?: string` - EU regulatory restrictions
-  - `ecNumber?: string` - European Commission number
-
-#### 2. **Merge Utilities** (`src/lib/ingredientProcessor.ts`)
-- **`parseCosingFunctions()`**: Parses comma-separated COSING function strings into clean array
-- **`processCosingIngredient()`**: Processes COSING raw data into standardized format
-- **`mergeIngredients()`**: Smart merge algorithm that:
-  - Matches ingredients by CAS number (primary) or name (fallback)
-  - Combines functions from both sources without differentiation
-  - Merges source badges for duplicate ingredients
-  - Sorts alphabetically by ingredient name
-  - Prefers more descriptive descriptions
-
-#### 3. **Data Fetching** (`src/hooks/useIngredients.ts`)
-- Fetches USFDA and COSING ingredients **in parallel** for optimal performance
-- Processes both datasets independently
-- Merges using smart merge algorithm
-- Applies filters (search, category, data availability) to merged results
-- Implements client-side pagination for merged data
-- Updated `useIngredientsCount()` to return combined count estimate
-
-#### 4. **UI Display** (`src/components/IngredientTable.tsx`)
-- **New "Source" column**: Shows FDA and/or EU badges for each ingredient
-  - Blue badge for USFDA: `[FDA]`
-  - Yellow badge for EU COSING: `[EU]`
-- **New "Functions" column**: Displays up to 3 function tags inline
-  - Shows "+N" badge if more than 3 functions exist
-  - All functions displayed in expanded row view
-- **Expanded row enhancements**:
-  - "All Functions" section with complete function list as badges
-  - EU Restriction warning badge (orange) if restrictions exist
-  - EC number display alongside CAS number
-- **Color scheme**:
-  - FDA badges: `bg-blue-50 text-blue-600`
-  - EU badges: `bg-yellow-50 text-yellow-700`
-  - Function badges: `bg-gray-50 text-gray-600`
-  - Restriction warnings: `bg-orange-50 text-orange-700`
-
-### Key Features:
-
-1. **Unified View**: Single alphabetically-sorted table showing ingredients from both databases
-2. **Smart Deduplication**: Ingredients in both databases show as single row with multiple source badges
-3. **Combined Functions**: All functional categories merged without distinguishing source
-4. **Regulatory Transparency**: EU restrictions clearly highlighted with warning badges
-5. **Search Enhancement**: Can search by ingredient name, description, CAS number, or function
-6. **Performance**: Parallel fetching of both databases for optimal load time
-
-### Example Display:
+### Architecture
 
 ```
-Name              | Source    | Category    | Functions
-------------------|-----------|-------------|---------------------------
-Glycerin          | [FDA][EU] | Hydrating   | Emollient · Humectant · ...
-Hyaluronic Acid   | [FDA][EU] | Hydrating   | Humectant · Skin Cond. · ...
-Retinol           | [FDA]     | Anti-aging  | -
+AuthContext (wraps app)
+├── Session & User State
+├── OAuth Functions
+└── Profile Update Function
+
+Protected Pages
+├── /settings - Edit profile & skin info
+└── /favorites - Manage favorite ingredients
+
+Database
+├── profiles - User accounts & preferences
+├── ingredient_favorites - Saved ingredients
+└── ingredient_history - View tracking
 ```
 
-**Files Modified**:
-- `src/integrations/supabase/types.ts` - Added COSING_ingredients types
-- `src/lib/ingredientProcessor.ts` - Added merge logic and COSING processing
-- `src/hooks/useIngredients.ts` - Updated to fetch and merge both databases
-- `src/components/IngredientTable.tsx` - Enhanced UI with source badges and functions
+### User Flow
 
-**Status**:
-- ✅ Smart merge by CAS number implemented
-- ✅ Data source badges displayed (FDA/EU)
-- ✅ Combined functions shown as badge pills
-- ✅ EU restrictions highlighted with warnings
-- ✅ Alphabetical sorting maintained
-- ✅ All filters and search working with merged data
+1. **New User**: Click "Sign In" → OAuth provider → Auto profile created
+2. **Returning User**: Click "Sign In" → OAuth provider → Resume session
+3. **Personalization**: Settings page → Select skin type & concerns → Save
+4. **Favorites**: Click heart on ingredient → Added to favorites → View on /favorites
+
+### Code Quality
 - ✅ TypeScript compilation successful
-- ✅ Dev server running successfully
-
-**Performance Notes**:
-- Parallel fetching reduces load time
-- Client-side merge allows for flexible filtering
-- Pagination applied after merge for optimal UX
-- **No query limits** - fetches all records from both databases (FDA + all 28,712 COSING records)
-
-**Bug Fix (2025-11-12)**:
-- **Issue**: Initial implementation had `.limit(10000)` on queries, missing 18,712+ COSING records
-- **Fix**: Removed all limits to fetch complete datasets
-- **Result**: Now properly displaying all 28,712+ COSING ingredients merged with FDA data
+- ✅ All imports resolved
+- ✅ Build completes without errors
+- ✅ Production build ready (`npm run build`)
 
 ---
 
-## 📚 DATABASE: Added COSING_ingredients Table Types (2025-11-12)
-
-**Change**: Added TypeScript types for the `COSING_ingredients` table (EU cosmetic ingredients database)
-
-**Status**: ✅ **COMPLETED - Fully integrated into UI** (see feature above)
-
----
-
-## 📚 DATABASE: Added ingredient_references Table Types (2025-11-09)
-
-**Change**: Added TypeScript types for the `ingredient_references` table in Supabase
-
-**Table Structure**:
-```typescript
-ingredient_references {
-  id: string (uuid)
-  ingredient_name: string
-  doi: string | null
-  title: string
-  authors: string
-  journal: string
-  year: number
-  url: string
-  summary: string
-  created_at: string
-}
-```
-
-**Purpose**: This table stores research paper references linked to skincare ingredients, including:
-- Scientific paper metadata (DOI, title, authors, journal, year)
-- Direct links to papers (Semantic Scholar URLs)
-- Summaries/abstracts of research findings
-- Linkage to ingredients by name
-
-**Files Modified**: `src/integrations/supabase/types.ts`
-
-**Status**:
-- ✅ TypeScript types added with full Row/Insert/Update interfaces
-- ✅ Types validated (no compilation errors)
-- ⏳ Not yet integrated into UI (planned for future)
-- ✅ Confirmed working in Supabase with sample data
-
-**Next Steps** (when ready):
-- ~~Create hook to fetch papers by ingredient name~~ ✅ COMPLETED
-- ~~Display papers in ingredient detail views~~ ✅ COMPLETED
-- Add paper filtering/search functionality (future enhancement)
-
----
-
-## 🔗 FEATURE: Research Paper Links in Ingredient Table (2025-11-09)
-
-**Feature**: Added research paper hyperlinks to ingredient table expandable rows
-
-**Implementation**:
-
-1. **New Hook**: `src/hooks/useIngredientPapers.ts`
-   - Fetches papers from `ingredient_references` table by ingredient name
-   - Uses React Query for caching and automatic refetching
-   - Returns papers sorted by year (newest first)
-
-2. **New Component**: `src/components/IngredientPapers.tsx`
-   - Displays research papers under ingredient description
-   - Shows loading state while fetching
-   - Returns null if no papers found
-
-3. **Updated Component**: `src/components/IngredientTable.tsx`
-   - Integrated `IngredientPapers` component
-   - Removed old static papers interface
-   - Papers now fetched dynamically from Supabase
-
-**UI Design** (as requested):
-- ✅ **Position**: Directly underneath product description
-- ✅ **Layout**: One line per paper
-- ✅ **Truncation**: Long titles cut off with `...` using CSS `truncate`
-- ✅ **Blue background**: Subtle `bg-blue-50` with `px-1.5 py-0.5` padding
-- ✅ **Bullet points**: Small blue bullets (`●`) with `text-blue-400`
-- ✅ **Subtle styling**: `text-xs` size, rounded corners, minimal spacing
-- ✅ **Interactive**: Hover effects (underline + darker blue)
-- ✅ **Tooltip**: Full paper info shown on hover via `title` attribute
-
-**Files Created**:
-- `src/hooks/useIngredientPapers.ts`
-- `src/components/IngredientPapers.tsx`
-
-**Files Modified**:
-- `src/components/IngredientTable.tsx`
-
-**Example Display**:
-```
-[Ingredient Description]
-● Research paper title here which may be truncated...
-● Another paper title that is also truncated if...
-```
-
-**Result**: Users can now see and access relevant research papers for each ingredient directly in the ingredient table, with clean, subtle presentation that doesn't overwhelm the UI.
-
----
-
-## ✨ FEATURE: Interactive Glow Effect for 3D Facial Zones (2025-11-11)
-
-**Feature**: Added an interactive blue glow effect that highlights facial zones when hovering over them
-
-**Implementation**:
-
-1. **Glow Effect Management System**:
-   - Created functions to track and manage Three.js material emissive properties
-   - Stores original material states to restore when glow is removed
-   - Applies blue emissive glow (color: `0x4488ff`) with intensity 0.3
-
-2. **Minimal Three.js Impact**:
-   - No new Three.js instances created - works with existing materials
-   - Uses the existing raycasting system without interference
-   - Tracks glowing objects to ensure proper cleanup
-
-3. **Event Integration**:
-   - Integrated into existing `handleMouseMove` for hover detection
-   - Applies glow when hovering over a facial zone
-   - Removes glow when moving to a different zone or leaving the canvas
-   - Added cleanup in `handleMouseLeave` for complete removal
-
-**Technical Details**:
-- **Glow Color**: Blue (`0x4488ff`) - matches the overall UI theme
-- **Glow Intensity**: 0.3 - subtle but noticeable
-- **Performance**: Minimal impact, reuses existing raycasting results
-- **Cleanup**: Properly restores original material properties
-
-**Files Modified**:
-- `src/components/FaceModel.tsx`
-
-**Result**: Facial zones now provide immediate visual feedback with a subtle blue glow effect when users hover over them, improving the interactive experience and making it clearer which zone will be selected on click. The effect is smooth, performant, and doesn't interfere with the existing raycasting or rotation controls.

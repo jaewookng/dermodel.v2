@@ -9,135 +9,155 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      COSING_ingredients: {
+      profiles: {
         Row: {
-          "COSING Ref No": number
-          "INCI name": string | null
-          "INN name": string | null
-          "Ph. Eur. Name": string | null
-          "CAS No": string | null
-          "EC No": string | null
-          "Chem/IUPAC Name / Description": string | null
-          Restriction: string | null
-          Function: string | null
-          "Update Date": string | null
+          id: string
+          email: string
+          full_name: string | null
+          avatar_url: string | null
+          bio: string | null
+          skin_type: string | null
+          skin_concerns: string[] | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          "COSING Ref No": number
-          "INCI name"?: string | null
-          "INN name"?: string | null
-          "Ph. Eur. Name"?: string | null
-          "CAS No"?: string | null
-          "EC No"?: string | null
-          "Chem/IUPAC Name / Description"?: string | null
-          Restriction?: string | null
-          Function?: string | null
-          "Update Date"?: string | null
+          id: string
+          email: string
+          full_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          skin_type?: string | null
+          skin_concerns?: string[] | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          "COSING Ref No"?: number
-          "INCI name"?: string | null
-          "INN name"?: string | null
-          "Ph. Eur. Name"?: string | null
-          "CAS No"?: string | null
-          "EC No"?: string | null
-          "Chem/IUPAC Name / Description"?: string | null
-          Restriction?: string | null
-          Function?: string | null
-          "Update Date"?: string | null
+          id?: string
+          email?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          skin_type?: string | null
+          skin_concerns?: string[] | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
-      ingredient_references: {
+      product_favorites: {
         Row: {
           id: string
-          ingredient_name: string
-          doi: string | null
-          title: string
-          authors: string
-          journal: string
-          year: number
-          url: string
-          summary: string
+          user_id: string
+          product_id: string
+          notes: string | null
           created_at: string
         }
         Insert: {
           id?: string
-          ingredient_name: string
-          doi?: string | null
-          title: string
-          authors: string
-          journal: string
-          year: number
-          url: string
-          summary: string
+          user_id: string
+          product_id: string
+          notes?: string | null
           created_at?: string
         }
         Update: {
           id?: string
-          ingredient_name?: string
-          doi?: string | null
-          title?: string
-          authors?: string
-          journal?: string
-          year?: number
-          url?: string
-          summary?: string
+          user_id?: string
+          product_id?: string
+          notes?: string | null
           created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_favorites_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_favorites_product_id_fkey"
+            columns: ["product_id"]
+            referencedRelation: "sss_products"
+            referencedColumns: ["product_id"]
+          }
+        ]
+      }
+      sss_ingredients: {
+        Row: {
+          ingredient_id: string
+          ingredient_name: string | null
+          product_count: number | null
+          avg_position: number | null
+        }
+        Insert: {
+          ingredient_id: string
+          ingredient_name?: string | null
+          product_count?: number | null
+          avg_position?: number | null
+        }
+        Update: {
+          ingredient_id?: string
+          ingredient_name?: string | null
+          product_count?: number | null
+          avg_position?: number | null
         }
         Relationships: []
       }
-      ingredients: {
+      sss_products: {
         Row: {
-          CAS_NUMBER: number | null
-          database: string | null
-          DESCRIPTION: string | null
-          INGREDIENT_NAME: string
-          MAXIMUM_DAILY_EXPOSURE: string | null
-          MAXIMUM_DAILY_EXPOSURE_UNIT: string | null
-          POTENCY_AMOUNT: string | null
-          POTENCY_UNIT: string | null
-          RECORD_UPDATED: string | null
-          ROUTE: string | null
-          UNII: string | null
+          product_id: string
+          product_name: string
+          ingredient_count: number | null
         }
         Insert: {
-          CAS_NUMBER?: number | null
-          database?: string | null
-          DESCRIPTION?: string | null
-          INGREDIENT_NAME: string
-          MAXIMUM_DAILY_EXPOSURE?: string | null
-          MAXIMUM_DAILY_EXPOSURE_UNIT?: string | null
-          POTENCY_AMOUNT?: string | null
-          POTENCY_UNIT?: string | null
-          RECORD_UPDATED?: string | null
-          ROUTE?: string | null
-          UNII?: string | null
+          product_id: string
+          product_name: string
+          ingredient_count?: number | null
         }
         Update: {
-          CAS_NUMBER?: number | null
-          database?: string | null
-          DESCRIPTION?: string | null
-          INGREDIENT_NAME?: string
-          MAXIMUM_DAILY_EXPOSURE?: string | null
-          MAXIMUM_DAILY_EXPOSURE_UNIT?: string | null
-          POTENCY_AMOUNT?: string | null
-          POTENCY_UNIT?: string | null
-          RECORD_UPDATED?: string | null
-          ROUTE?: string | null
-          UNII?: string | null
+          product_id?: string
+          product_name?: string
+          ingredient_count?: number | null
         }
         Relationships: []
+      }
+      sss_product_ingredients_join: {
+        Row: {
+          product_id: string
+          ingredient_id: string
+          position: number | null
+        }
+        Insert: {
+          product_id: string
+          ingredient_id: string
+          position?: number | null
+        }
+        Update: {
+          product_id?: string
+          ingredient_id?: string
+          position?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_product_id"
+            columns: ["product_id"]
+            referencedRelation: "sss_products"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "fk_ingredient_id"
+            columns: ["ingredient_id"]
+            referencedRelation: "sss_ingredients"
+            referencedColumns: ["ingredient_id"]
+          }
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      schedule_fda_sync: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

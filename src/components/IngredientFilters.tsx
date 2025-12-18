@@ -7,7 +7,6 @@ import { Search, X, Filter } from 'lucide-react';
 
 interface FilterState {
   search: string;
-  category: string;
   hasData: string;
   sortBy: string;
 }
@@ -19,11 +18,11 @@ interface IngredientFiltersProps {
   filteredCount: number;
 }
 
-export const IngredientFilters = ({ 
-  filters, 
-  onFiltersChange, 
-  totalCount, 
-  filteredCount 
+export const IngredientFilters = ({
+  filters,
+  onFiltersChange,
+  totalCount,
+  filteredCount
 }: IngredientFiltersProps) => {
   const updateFilter = (key: keyof FilterState, value: string) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -32,13 +31,12 @@ export const IngredientFilters = ({
   const clearFilters = () => {
     onFiltersChange({
       search: '',
-      category: 'all',
       hasData: 'all',
       sortBy: 'name'
     });
   };
 
-  const hasActiveFilters = filters.search || filters.category !== 'all' || filters.hasData !== 'all';
+  const hasActiveFilters = filters.search || filters.hasData !== 'all';
 
   return (
     <div className="space-y-4 p-4 bg-white rounded-lg border">
@@ -60,7 +58,7 @@ export const IngredientFilters = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
@@ -71,29 +69,13 @@ export const IngredientFilters = ({
           />
         </div>
 
-        <Select value={filters.category} onValueChange={(value) => updateFilter('category', value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="hydrating">Hydrating</SelectItem>
-            <SelectItem value="anti-aging">Anti-Aging</SelectItem>
-            <SelectItem value="acne-fighting">Acne Fighting</SelectItem>
-            <SelectItem value="brightening">Brightening</SelectItem>
-            <SelectItem value="sensitive">Sensitive Skin</SelectItem>
-          </SelectContent>
-        </Select>
-
         <Select value={filters.hasData} onValueChange={(value) => updateFilter('hasData', value)}>
           <SelectTrigger>
-            <SelectValue placeholder="Data Availability" />
+            <SelectValue placeholder="Filter by" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Ingredients</SelectItem>
-            <SelectItem value="with-cas">With CAS Number</SelectItem>
-            <SelectItem value="with-potency">With Potency Data</SelectItem>
-            <SelectItem value="with-exposure">With Exposure Limits</SelectItem>
+            <SelectItem value="with-products">In Products</SelectItem>
           </SelectContent>
         </Select>
 
@@ -104,8 +86,7 @@ export const IngredientFilters = ({
           <SelectContent>
             <SelectItem value="name">Name (A-Z)</SelectItem>
             <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-            <SelectItem value="category">Category</SelectItem>
-            <SelectItem value="cas">CAS Number</SelectItem>
+            <SelectItem value="product-count">Product Count</SelectItem>
           </SelectContent>
         </Select>
       </div>

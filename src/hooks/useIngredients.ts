@@ -1,17 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  processIngredients,
-  processCosingIngredient,
-  mergeIngredients,
-  ProcessedIngredient,
-  SupabaseIngredient,
-  COSINGIngredient
-} from '@/lib/ingredientProcessor';
+import { ProcessedIngredient } from '@/lib/ingredientProcessor';
 
 interface FilterParams {
   search?: string;
-  category?: string;
   hasData?: string;
   sortBy?: string;
   page?: number;
@@ -24,93 +16,110 @@ interface IngredientsResponse {
   hasMore: boolean;
 }
 
+export interface Product {
+  product_id: string;
+  product_name: string;
+  ingredient_count: number | null;
+}
+
 export const useIngredients = (filters: FilterParams = {}) => {
-  const { page = 1, limit = 50, search, category, hasData, sortBy = 'name' } = filters;
+  const { page = 1, limit = 50, search, hasData, sortBy = 'name' } = filters;
 
   return useQuery({
-    queryKey: ['ingredients', { page, limit, search, category, hasData, sortBy }],
+    queryKey: ['ingredients', { page, limit, search, hasData, sortBy }],
     queryFn: async (): Promise<IngredientsResponse> => {
-      console.log('🔍 Fetching ingredients from USFDA and COSING with filters:', filters);
+      console.log('🔍 Fetching ingredients from sss_ingredients table with filters:', filters);
 
       try {
-        // Fetch both USFDA and COSING ingredients in parallel (no limits - fetch all)
-        const [fdaResult, cosingResult] = await Promise.all([
-          supabase.from('ingredients').select('*'),
-          supabase.from('COSING_ingredients').select('*')
-        ]);
+        // Fetch ALL ingredients - Supabase limits to 1000 per request, so we batch
+        let allIngredients: any[] = [];
+        let from = 0;
+        const batchSize = 1000; // Supabase default limit
 
-        if (fdaResult.error) {
-          console.error('❌ FDA Supabase error:', fdaResult.error);
-          throw fdaResult.error;
+        while (true) {
+          console.log(`📦 Fetching ingredients batch: range(${from}, ${from + batchSize - 1})`);
+
+          const { data, error } = await supabase
+            .from('sss_ingredients')
+            .select('*')
+            .order('ingredient_name', { ascending: true })
+            .range(from, from + batchSize - 1);
+
+          if (error) {
+            console.error('❌ Supabase error:', error);
+            throw error;
+          }
+
+          const batchLength = data?.length || 0;
+          console.log(`📦 Batch returned ${batchLength} ingredients`);
+
+          if (data && data.length > 0) {
+            allIngredients = [...allIngredients, ...data];
+            from += batchSize;
+
+            // Stop if we got less than a full batch (no more data)
+            if (data.length < batchSize) {
+              break;
+            }
+          } else {
+            break;
+          }
         }
 
-        if (cosingResult.error) {
-          console.error('❌ COSING Supabase error:', cosingResult.error);
-          throw cosingResult.error;
-        }
+        console.log('✅ Fetched all ingredients from sss_ingredients:', allIngredients.length);
 
-        console.log('✅ Raw FDA ingredients:', fdaResult.data?.length || 0);
-        console.log('✅ Raw COSING ingredients:', cosingResult.data?.length || 0);
+        // Transform database results to ProcessedIngredient format
+        let processed: ProcessedIngredient[] = allIngredients
+          .filter(row => row.ingredient_name) // Filter out null names
+          .map(row => ({
+            id: row.ingredient_id,
+            name: row.ingredient_name!,
+            description: '',
+            benefits: [],
+            skinTypes: [],
+            concerns: [],
+            sources: [],
+            functions: [],
+            productCount: row.product_count || 0,
+            avgPosition: row.avg_position || null,
+          }));
 
-        // Process both datasets
-        const processedFDA = processIngredients(fdaResult.data as SupabaseIngredient[]);
-        const processedCOSING = (cosingResult.data as COSINGIngredient[]).map(processCosingIngredient);
-
-        // Merge ingredients by CAS number (already sorted alphabetically)
-        let merged = mergeIngredients(processedFDA, processedCOSING);
-
-        console.log('🔄 Merged ingredients:', merged.length);
+        console.log('🔄 Processed ingredients:', processed.length);
 
         // Apply search filter
         if (search && search.trim()) {
           const searchTerm = search.trim().toLowerCase();
-          merged = merged.filter(ingredient =>
-            ingredient.name.toLowerCase().includes(searchTerm) ||
-            ingredient.description.toLowerCase().includes(searchTerm) ||
-            ingredient.casNumber?.toLowerCase().includes(searchTerm) ||
-            ingredient.functions.some(fn => fn.toLowerCase().includes(searchTerm))
+          processed = processed.filter(ingredient =>
+            ingredient.name.toLowerCase().includes(searchTerm)
           );
         }
 
-        // Apply category filter
-        if (category && category !== 'all') {
-          merged = merged.filter(ingredient => ingredient.category === category);
-        }
-
         // Apply data availability filters
-        if (hasData === 'with-cas') {
-          merged = merged.filter(ing => ing.casNumber);
-        } else if (hasData === 'with-potency') {
-          merged = merged.filter(ing => ing.potency);
-        } else if (hasData === 'with-exposure') {
-          merged = merged.filter(ing => ing.maxExposure);
+        if (hasData === 'with-products') {
+          processed = processed.filter(ing => ing.productCount && ing.productCount > 0);
         }
 
-        // Sorting (already alphabetical by default from mergeIngredients)
+        // Sorting
         if (sortBy === 'name-desc') {
-          merged = merged.sort((a, b) => b.name.localeCompare(a.name));
-        } else if (sortBy === 'cas') {
-          merged = merged.sort((a, b) => {
-            if (!a.casNumber) return 1;
-            if (!b.casNumber) return -1;
-            return a.casNumber.localeCompare(b.casNumber);
-          });
+          processed = processed.sort((a, b) => b.name.localeCompare(a.name));
+        } else if (sortBy === 'product-count') {
+          processed = processed.sort((a, b) => (b.productCount || 0) - (a.productCount || 0));
         }
-        // sortBy === 'name' is already applied
+        // sortBy === 'name' is already applied by database ORDER BY
 
-        const totalCount = merged.length;
+        const totalCount = processed.length;
 
         // Apply pagination
-        const from = (page - 1) * limit;
-        const to = from + limit;
-        const paginatedData = merged.slice(from, to);
+        const fromIdx = (page - 1) * limit;
+        const toIdx = fromIdx + limit;
+        const paginatedData = processed.slice(fromIdx, toIdx);
 
         console.log('📄 Paginated ingredients:', paginatedData.length, 'items, total:', totalCount);
 
         return {
           data: paginatedData,
           totalCount,
-          hasMore: to < totalCount
+          hasMore: toIdx < totalCount
         };
       } catch (error) {
         console.error('💥 Error in ingredient fetch:', error);
@@ -123,29 +132,88 @@ export const useIngredients = (filters: FilterParams = {}) => {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
-// Hook for getting total count of merged ingredients
+
+// Hook for getting total count of ingredients
 export const useIngredientsCount = () => {
   return useQuery({
     queryKey: ['ingredients-count'],
     queryFn: async () => {
-      // Fetch both tables and merge to get accurate count
-      const [fdaResult, cosingResult] = await Promise.all([
-        supabase.from('ingredients').select('*', { count: 'exact', head: true }),
-        supabase.from('COSING_ingredients').select('*', { count: 'exact', head: true })
-      ]);
+      const { count, error } = await supabase
+        .from('sss_ingredients')
+        .select('*', { count: 'exact', head: true });
 
-      if (fdaResult.error) throw fdaResult.error;
-      if (cosingResult.error) throw cosingResult.error;
+      if (error) throw error;
 
-      // For a rough estimate, we can add both counts
-      // (Note: This may overcount if there are duplicates, but it's close enough for display)
-      const fdaCount = fdaResult.count || 0;
-      const cosingCount = cosingResult.count || 0;
-
-      // Return combined count as approximation
-      return fdaCount + cosingCount;
+      return count || 0;
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
+
+// Hook for fetching all products
+export const useProducts = () => {
+  return useQuery({
+    queryKey: ['products'],
+    queryFn: async (): Promise<Product[]> => {
+      console.log('🔍 Fetching all products from sss_products');
+
+      let allProducts: Product[] = [];
+      let from = 0;
+      const batchSize = 1000; // Supabase default limit
+
+      while (true) {
+        console.log(`📦 Fetching products batch: range(${from}, ${from + batchSize - 1})`);
+
+        const { data, error } = await supabase
+          .from('sss_products')
+          .select('*')
+          .order('product_name', { ascending: true })
+          .range(from, from + batchSize - 1);
+
+        if (error) {
+          console.error('❌ Supabase error fetching products:', error);
+          throw error;
+        }
+
+        const batchLength = data?.length || 0;
+        console.log(`📦 Batch returned ${batchLength} products`);
+
+        if (data && data.length > 0) {
+          allProducts = [...allProducts, ...data];
+          from += batchSize;
+
+          // Stop if we got less than a full batch (no more data)
+          if (data.length < batchSize) {
+            break;
+          }
+        } else {
+          break;
+        }
+      }
+
+      console.log('✅ Fetched all products:', allProducts.length);
+      return allProducts;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
+// Hook for getting total count of products
+export const useProductsCount = () => {
+  return useQuery({
+    queryKey: ['products-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('sss_products')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) throw error;
+
+      return count || 0;
+    },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 };

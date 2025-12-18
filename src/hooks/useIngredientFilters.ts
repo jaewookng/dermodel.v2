@@ -3,7 +3,6 @@ import { useDebounce } from './useDebounce';
 
 export interface FilterState {
   search: string;
-  category: string;
   hasData: string;
   sortBy: string;
 }
@@ -15,7 +14,6 @@ export interface PaginationState {
 
 const DEFAULT_FILTERS: FilterState = {
   search: '',
-  category: 'all',
   hasData: 'all',
   sortBy: 'name'
 };
@@ -46,29 +44,27 @@ export const useIngredientFilters = (debounceDelay: number = 300) => {
   
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return filters.search !== '' || 
-           filters.category !== 'all' || 
+    return filters.search !== '' ||
            filters.hasData !== 'all';
   }, [filters]);
-  
+
   // Update pagination
   const setCurrentPage = useCallback((page: number) => {
     setPagination(prev => ({ ...prev, currentPage: page }));
   }, []);
-  
+
   const setItemsPerPage = useCallback((items: number) => {
     setPagination({ currentPage: 1, itemsPerPage: items });
   }, []);
-  
+
   // Build query parameters for API calls
   const queryParams = useMemo(() => ({
     search: debouncedSearch,
-    category: filters.category,
     hasData: filters.hasData,
     sortBy: filters.sortBy,
     page: pagination.currentPage,
     limit: pagination.itemsPerPage
-  }), [debouncedSearch, filters.category, filters.hasData, filters.sortBy, pagination]);
+  }), [debouncedSearch, filters.hasData, filters.sortBy, pagination]);
   
   return {
     filters,
