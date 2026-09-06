@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AnalyticsListener } from "@/components/AnalyticsListener";
 import Index from "./pages/Index";
 import { Settings } from "./pages/Settings";
 import { Favorites } from "./pages/Favorites";
@@ -33,6 +34,7 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <AuthProvider>
+          <AnalyticsListener />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route
